@@ -1,0 +1,49 @@
+name: ECS Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write # This is required for requesting the JWT
+
+env:
+  AWS_REGION: eu-north-1
+  ECR_REPOSITORY: cv_analyser
+  ECS_SERVICE: cv_analyser
+  ECS_CLUSTER: cv_analyser
+  ECS_TASK_DEFINITION: .github/workflows/task-definition.json
+  CONTAINER_NAME: cv_analyser
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credntials@v2
+      with:
+        role-to-assume: arn:aws:iam::307421038584:role/git-aws-cv_analyser
+        aws-region: eu-north-1
+
+    - name: Login to AWS ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Push Docker image to ECR
+      run: |
+        docker build -t $ECR_REGISTRY/4ECR_REPOSITORY:$IMAGE_TAG .
+        docker push $ECR_REGISTRY/4ECR_REPOSITORY:$IMAGE_TAG:latest
+
+    - name: Deploy to ECS
+      uses: aws-actions/amazon-ecs-deploy@v1
+      with:
+        cluster: cv_analysis
+        service: cv_analysis
+        image: $ECR_REGISTRY/4ECR_REPOSITORY:$IMAGE_TAG:latest
+        region: your-aws-region
+        wait-for-service-stability: true
