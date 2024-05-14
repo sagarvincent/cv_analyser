@@ -41,9 +41,10 @@
                 <h2 class=" text_col1">Check the score for your CV against the industry standard</h2>
                 <label class = "CV-instructions ">1. Upload the CV in pdf or word format<br>2. Click submit to check CV score</label>
                 <br>
-                <div class="drop-zone" id="drop-zone">
-                    <span class="drop-zone__prompt text_col2">Drag & Drop files here or click to upload</span>
-                    <input type="file" class="drop-zone__input" id="fileInput" multiple>
+                <div class="drop-zone" id="drop-zone1">
+                    <span class="drop-zone__prompt text_col2">Drag & Drop files here or <a href="#" id="uploadLink1">click to upload</a></span>
+                    <input type="file" class="drop-zone__input" id="fileInput1" multiple onchange="displayUploadedFiles()">
+                    <div id="fileList1"></div>
                 </div>
                 <script src="scripts/dragndrop.js"></script>
                 <input type="submit" value="Analyse my CV">
@@ -51,8 +52,8 @@
         </section>
         <section class="results-container container2" id="resultsSection">
             <h1 class="off-white">Results</h1>
-            <div id="resultsContent" style="display: none;">
-                <p>Please select a service and click submit to get the results.</p>
+            <div id="resultsContent" style="display:block;">
+                <p class ="resultcontent">Please select a service and click submit to get the results.</p>
                 <!-- Results content will be dynamically inserted here -->
             </div>
             <script src="scripts/results.js"></script>
@@ -67,10 +68,14 @@
                 <h2 class=" text_col1">Check your CV score for compatibility against a job description</h2>
                 <label class = "CV-instructions ">1. Upload the CV in pdf or word format<br>2. copy & paste the job description to the below box.<br> 3. Click submit to check CV score</label>
                 <br>
-                <div class="drop-zone" id="drop-zone">
-                    <span class="drop-zone__prompt text_col2">Drag & Drop files here or click to upload</span>
-                    <input type="file" class="drop-zone__input" id="fileInput" multiple>
+                <div class="drop-zone" id="drop-zone2">
+                    <span class="drop-zone__prompt text_col2">Drag & Drop files here or <a href="#" id="uploadLink">click to upload</a></span>
+                    <input type="file" class="drop-zone__input" id="fileInput2" multiple onchange="displayUploadedFiles()">
+                    <div id="fileList2"></div>
                 </div>
+                
+                <script src="scripts/dragndrop.js"></script>
+                               
                 <label class ="job-description ">Job Description:</label><br>
                 <textarea class ="job-description-field" id="job-description" name="job-description" rows="10" cols="50"></textarea><br>
                 <input type="submit" value="Check my compatibility score">

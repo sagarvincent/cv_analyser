@@ -3,7 +3,7 @@ const resultsSection = document.getElementById('resultsSection');
 const resultsContent = document.getElementById('resultsContent');
 
 // Initially hide the results content
-resultsContent.style.display = 'none';
+resultsContent.style.display = 'block';
 
 // Function to show results with a given message
 function showResults(message) {

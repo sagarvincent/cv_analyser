@@ -21,6 +21,7 @@ body {
     color:#b5cfff ;
   }
   .logo-name {
+    flex:1;
     margin-right: 10px;
     display: flex; /* Align items horizontally */
     align-items: center; /* Center vertically */
@@ -90,6 +91,7 @@ input:checked + .slider:before {
 }
 .nav {
   text-align: right; /* Align the navigation items to the right */
+  margin-right: 10px;
 }
 .nav ul {
   list-style-type: none;
@@ -155,7 +157,7 @@ input:checked + .slider:before {
   background-color:transparent ;
 }
 
-.container2{
+.container2 {
   flex: 1;
   padding: 20px;
   background-color: #ffffff;
@@ -174,6 +176,17 @@ input:checked + .slider:before {
   display: flex;
   justify-content: left; /* Center the content horizontally */
   margin-top: 20px; /* Add some top margin */
+
+}
+.resultcontent{
+  flex: 0;
+  color: #acacac;
+  font: Arial;
+  align-items: center;
+  text-align: center;
+  font-weight: 100;
+  margin-top: 25px;
+  padding-top: 50px;
 }
 
 
