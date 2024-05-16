@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CV Scoring</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}">
+    
+</head>
+<body data-theme ="light">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cedarville+Cursive&family=Lobster&display=swap');
+    </style>
+    <header class="header">
+        <div class="logo-name">
+            <span >CAREER ENGINE</span>
+        </div>
+        <nav class="nav">
+            <ul>
+                <li><a href="#">About</a></li>
+                <li><a href="#">Services</a></li>
+                <li><a href="#">Support</a></li>
+            </ul>
+        </nav>
+        <label for="darkModeToggle" class="dark-mode-label">Mode</label>
+        <label class="switch">
+            <input type="checkbox" id="darkModeToggle">
+            <span class="slider round"></span>
+        </label>
+        
+
+    </header>
+    <script src="{{ url_for('static', filename='scripts/sliderscript.js') }}"></script>
+
+
+
+
+    <div class = "grouper">
+    <section class="container c1 left-boxes">
+        <section class="container2">
+            <h1 class="off-white">CV ANALYSER</h1>        
+            <form action="/analyse" method="post" enctype="multipart/form-data">            
+                <h2 class=" text_col1">Check the score for your CV against the industry standard</h2>
+                <label class = "CV-instructions ">1. Upload the CV in pdf or word format<br>2. Click submit to check CV score</label>
+                <br>
+                <div class="drop-zone" id="drop-zone1">
+                    <span class="drop-zone__prompt text_col2">Drag & Drop files here or <a href="#" id="uploadLink1">click to upload</a></span>
+                    <input type="file" name="cv" class="drop-zone__input" id="fileInput1" multiple onchange="displayUploadedFiles()">
+                    <div id="fileList1"></div>
+                </div>
+                <script src="{{ url_for('static', filename='scripts/dragndrop.js') }}"></script>
+                <input type="submit" value="Analyse my CV">
+            </form>        
+        </section>
+        <section class="results-container container2" id="resultsSection">
+            <h1 class="off-white">Results</h1>
+            <div id="resultsContent" style="display:block;">
+                {% if cv_score %}
+                <h2>CV Score: {{ cv_score }}</h2>
+                <p>{{ explanation }}</p>
+                {% else %} 
+                <p class ="resultcontent">Please select a service and click submit to get the results.</p>
+                {% endif %}
+                
+                <!-- Results content will be dynamically inserted here -->
+            </div>
+            <script src="{{ url_for('static', filename='scripts/results.js') }}"></script>
+        </section>
+        
+    </section>
+    
+    <section class = "container c2 right-box">
+        <section class="container2 ">
+            <h1 class="off-white">CV COMPATIBILITY CHECKER</h1>       
+            <form action="/comp_score" method="post" enctype="multipart/form-data">            
+                <h2 class=" text_col1">Check your CV score for compatibility against a job description</h2>
+                <label class = "CV-instructions ">1. Upload the CV in pdf or word format<br>2. copy & paste the job description to the below box.<br> 3. Click submit to check CV score</label>
+                <br>
+                <div class="drop-zone" id="drop-zone2">
+                    <span class="drop-zone__prompt text_col2">Drag & Drop files here or <a href="#" id="uploadLink">click to upload</a></span>
+                    <input type="file" name="cv" class="drop-zone__input" id="fileInput2" multiple onchange="displayUploadedFiles()">
+                    <div id="fileList2"></div>
+                </div>
+                <script src="{{ url_for('static', filename='scripts/dragndrop.js') }}"></script>
+                
+                               
+                <label class ="job-description ">Job Description:</label><br>
+                <textarea class ="job-description-field" id="job-description" name="job-description" rows="10" cols="50"></textarea><br>
+                <input type="submit" value="Check my compatibility score">
+            </form>        
+        </section>
+    </section>       
+    </div>
+      
+      
+    
+</body>
+</html>

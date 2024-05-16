@@ -6,6 +6,7 @@ class similarity_score():
 
     def __init__(self,cv,jd) -> None:
         self.score = 0
+        self.expalnation = "Explanation feature yet to be added "
         self.cv = cv
         self.jd = jd
     
@@ -40,7 +41,7 @@ class similarity_score():
         self.score = round((self.score/len(lemma_jd)),3)
         print(self.score)
 
-        return self.score
+        return self.score, self.expalnation
 
 if __name__ =="__main__":
     cv_path = r"D:\Projects\Job\alindor\cv_analyser\test\data\SagarResume-2.pdf"
