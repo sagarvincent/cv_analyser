@@ -1,0 +1,35 @@
+John Doe
+-----------------
+Contact Information:
+- Email: john.doe@example.com
+- Phone: (123) 456-7890
+
+Professional Summary:
+Experienced Software Developer with over 5 years of experience in developing scalable web applications and working across the full stack. Proficient in Java, Python, and SQL.
+
+Work Experience:
+-----------------
+Software Developer
+XYZ Corp
+June 2017 - Present
+- Developed and maintained web applications using Java, Spring Boot, and Hibernate.
+- Collaborated with front-end developers to integrate user-facing elements with server-side logic using JavaScript, HTML, and CSS.
+- Optimized SQL queries to improve database performance.
+
+Junior Software Developer
+ABC Inc.
+Jan 2015 - May 2017
+- Assisted in the development of web applications using Python and Django.
+- Created and maintained RESTful APIs.
+- Participated in code reviews and contributed to the development of best practices.
+
+Education:
+B.Sc. in Computer Science
+University of Somewhere
+Graduated: 2014
+
+Skills:
+- Programming Languages: Java, Python, SQL, JavaScript
+- Web Technologies: HTML, CSS, React.js
+- Databases: MySQL, PostgreSQL
+- Tools: Git, Docker, Jenkins

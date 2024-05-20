@@ -1,0 +1,21 @@
+Job Title: Senior Software Developer
+
+Job Description:
+We are seeking a Senior Software Developer with a strong background in full-stack web development. The ideal candidate will have extensive experience with Java and Python and a solid understanding of SQL databases. You will be responsible for developing new features, optimizing performance, and collaborating with cross-functional teams.
+
+Responsibilities:
+- Develop and maintain web applications using Java and Python.
+- Design and optimize SQL database queries.
+- Work with front-end technologies such as JavaScript, HTML, and CSS.
+- Participate in code reviews and ensure adherence to best practices.
+
+Requirements:
+- Minimum 5 years of experience in software development.
+- Proficiency in Java, Python, and SQL.
+- Experience with web technologies: JavaScript, HTML, and CSS.
+- Bachelor's degree in Computer Science or related field.
+
+Preferred Qualifications:
+- Experience with React.js and RESTful API design.
+- Knowledge of containerization tools like Docker.
+- Familiarity with continuous integration and deployment tools like Jenkins.
