@@ -35,11 +35,7 @@ def comp_score():
         # Save the files and get their paths
         cv_path = 'uploads/' + cv_file.filename
         cv_file.save(cv_path)
-        parser = cv_parse()
-        print(type(job_description))
-        #cv_file = parser.convert_to_pdf(cv_file)
-        # Call the scoring function
-        cwd = os.getcwd()
+        parser = cv_parse()    
         parsed_data = parser.parse_cv_file(cv_path)
         s = similarity_score(parsed_data, job_description)
         cv_score, score_explanation = s.sim_score()
