@@ -1,99 +1,160 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CV Scoring</title>
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='/style.css') }}">
-    
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Career Engine</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --primary:#2f6df6;
+  --primary-dark:#1f4fd1;
+  --bg:#f5f7fb;
+  --card:#ffffff;
+  --border:#e4e8f1;
+  --text:#1a2233;
+  --muted:#6b7280;
+}
+
+body.dark{
+  --bg:#0f172a;
+  --card:#111827;
+  --border:#263043;
+  --text:#e5e7eb;
+  --muted:#9ca3af;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Inter',sans-serif}
+body{background:var(--bg);color:var(--text);transition:.25s}
+
+/* NAV */
+.navbar{
+  background:var(--card);
+  border-bottom:1px solid var(--border);
+  padding:18px 40px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.logo{font-weight:700;font-size:22px;color:var(--primary)}
+.nav-links a{margin-left:28px;text-decoration:none;color:var(--muted);font-weight:500}
+.nav-links a:hover{color:var(--primary)}
+
+.toggle{
+  margin-left:25px;
+  cursor:pointer;
+  border:1px solid var(--border);
+  padding:8px 14px;
+  border-radius:10px;
+  font-size:14px;
+  background:var(--card);
+}
+
+/* LAYOUT */
+.container{max-width:1200px;margin:50px auto;padding:0 20px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:30px}
+.card{background:var(--card);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.08);padding:30px}
+.card h2{font-size:22px;margin-bottom:10px}
+.card p{color:var(--muted);margin-bottom:20px}
+.card ol{margin-left:18px;color:var(--muted);margin-bottom:20px}
+.card ol li{margin:6px 0}
+
+/* UPLOAD BOX */
+.upload-box{border:2px dashed var(--border);border-radius:12px;padding:35px;text-align:center;color:var(--muted);margin-bottom:18px;cursor:pointer}
+.upload-box span{color:var(--primary);font-weight:600}
+
+textarea{width:100%;height:140px;border:1px solid var(--border);border-radius:10px;padding:14px;resize:none;margin-top:10px;background:transparent;color:var(--text)}
+
+.file-name{margin-top:10px;font-size:14px;color:var(--muted)}
+
+/* BUTTON */
+.btn{display:inline-block;background:var(--primary);color:white;border:none;padding:12px 26px;border-radius:10px;font-weight:600;cursor:pointer;transition:.2s}
+.btn:hover{background:var(--primary-dark)}
+
+.results{margin-top:18px;padding:16px;border:1px solid var(--border);border-radius:10px;color:var(--muted);background:rgba(0,0,0,0.03)}
+
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+</style>
 </head>
-<body data-theme ="light">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@700&display=swap');
-        @import url('https://fonts.googleapis.com/css2?family=Cedarville+Cursive&family=Lobster&display=swap');
-    </style>
-    <header class="header">
-        <div class="logo-name">
-            <span >CAREER ENGINE</span>
-        </div>
-        <nav class="nav">
-            <ul>
-                <li><a href="#">About</a></li>
-                <li><a href="#">Services</a></li>
-                <li><a href="#">Support</a></li>
-            </ul>
-        </nav>
-        <label for="darkModeToggle" class="dark-mode-label">Mode</label>
-        <label class="switch">
-            <input type="checkbox" id="darkModeToggle">
-            <span class="slider round"></span>
-        </label>
-        
+<body>
 
-    </header>
-    <script src="{{ url_for('static', filename='scripts/sliderscript.js') }}"></script>
-
-
-
-
-    <div class = "grouper">
-    <section class="container c1 left-boxes">
-        <section class="container2">
-            <h1 class="off-white">CV ANALYSER</h1>        
-            <form action="/analyse" method="post" enctype="multipart/form-data">            
-                <h2 class=" text_col1">Check the score for your CV against the industry standard</h2>
-                <label class = "CV-instructions ">1. Upload the CV in pdf or word format<br>2. Click submit to check CV score</label>
-                <br>
-                <div class="drop-zone" id="drop-zone1">
-                    <span class="drop-zone__prompt text_col2">Drag & Drop files here or <a href="#" id="uploadLink1">click to upload</a></span>
-                    <input type="file" name="cv" class="drop-zone__input" id="fileInput1" multiple onchange="displayUploadedFiles()">
-                    <div id="fileList1"></div>
-                </div>
-                <script src="{{ url_for('static', filename='scripts/dragndrop.js') }}"></script>
-                <input type="submit" value="Analyse my CV">
-            </form>        
-        </section>
-        <section class="results-container container2" id="resultsSection">
-            <h1 class="off-white">Results</h1>
-            <div id="resultsContent" style="display:block;">
-                {% if cv_score %}
-                <h2>CV Score: {{ cv_score }}</h2>
-                <p>{{ explanation }}</p>
-                {% else %} 
-                <p class ="resultcontent">Please select a service and click submit to get the results.</p>
-                {% endif %}
-                
-                <!-- Results content will be dynamically inserted here -->
-            </div>
-            <script src="{{ url_for('static', filename='scripts/results.js') }}"></script>
-        </section>
-        
-    </section>
-    
-    <section class = "container c2 right-box">
-        <section class="container2 ">
-            <h1 class="off-white">CV COMPATIBILITY CHECKER</h1>       
-            <form action="/comp_score" method="post" enctype="multipart/form-data">            
-                <h2 class=" text_col1">Check your CV score for compatibility against a job description</h2>
-                <label class = "CV-instructions ">1. Upload the CV in pdf or word format<br>2. copy & paste the job description to the below box.<br> 3. Click submit to check CV score</label>
-                <br>
-                <div class="drop-zone" id="drop-zone2">
-                    <span class="drop-zone__prompt text_col2">Drag & Drop files here or <a href="#" id="uploadLink">click to upload</a></span>
-                    <input type="file" name="cv" class="drop-zone__input" id="fileInput2" multiple onchange="displayUploadedFiles()">
-                    <div id="fileList2"></div>
-                </div>
-                <script src="{{ url_for('static', filename='scripts/dragndrop.js') }}"></script>
-                
-                               
-                <label class ="job-description ">Job Description:</label><br>
-                <textarea class ="job-description-field" id="job-description" name="job-description" rows="10" cols="50"></textarea><br>
-                <input type="submit" value="Check my compatibility score">
-            </form>        
-        </section>
-    </section>       
+<nav class="navbar">
+  <div class="logo">CAREER ENGINE</div>
+  <div style="display:flex;align-items:center">
+    <div class="nav-links">
+      <a href="#">About</a>
+      <a href="#">Services</a>
+      <a href="#">Support</a>
     </div>
-      
-      
-    
+    <button class="toggle" onclick="toggleTheme()">🌙 Dark</button>
+  </div>
+</nav>
+
+<div class="container">
+  <div class="grid">
+
+    <!-- CV ANALYSER -->
+    <div class="card">
+      <h2>CV ANALYSER</h2>
+      <p>Check the score for your CV against the industry standard</p>
+      <ol>
+        <li>Upload the CV in pdf or word format</li>
+        <li>Click submit to check CV score</li>
+      </ol>
+
+      <div class="upload-box" onclick="uploadFile(this)">
+        Drag & Drop files here or <span>click to upload</span>
+        <input type="file" accept=".pdf,.doc,.docx" hidden>
+        <div class="file-name"></div>
+      </div>
+
+      <button class="btn">Check Score</button>
+      <div class="results">Please select a service and click submit to get the results.</div>
+    </div>
+
+    <!-- COMPATIBILITY -->
+    <div class="card">
+      <h2>CV COMPATIBILITY CHECKER</h2>
+      <p>Check your CV score for compatibility against a job description</p>
+      <ol>
+        <li>Upload the CV in pdf or word format</li>
+        <li>Copy & paste the job description below</li>
+        <li>Click submit to check CV score</li>
+      </ol>
+
+      <div class="upload-box" onclick="uploadFile(this)">
+        Drag & Drop files here or <span>click to upload</span>
+        <input type="file" accept=".pdf,.doc,.docx" hidden>
+        <div class="file-name"></div>
+      </div>
+
+      <label>Job Description:</label>
+      <textarea placeholder="Paste job description here..."></textarea>
+      <br><br>
+      <button class="btn">Check Compatibility</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function toggleTheme(){
+  document.body.classList.toggle('dark');
+  localStorage.setItem('theme',document.body.classList.contains('dark')?'dark':'light');
+}
+
+// Load saved theme
+if(localStorage.getItem('theme')==='dark') document.body.classList.add('dark');
+
+// File Upload UI
+function uploadFile(box){
+  const input=box.querySelector('input');
+  input.click();
+  input.onchange=()=>{
+    box.querySelector('.file-name').textContent=input.files[0]?.name||'';
+  };
+}
+</script>
+
 </body>
 </html>
