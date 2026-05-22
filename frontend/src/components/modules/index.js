@@ -1,0 +1,9 @@
+export { OverviewModule } from './OverviewModule';
+export { JDFitModule } from './JDFitModule';
+export { SkillGapModule } from './SkillGapModule';
+export { AltPathsModule } from './AltPathsModule';
+export { ATSModule } from './ATSModule';
+export { PeerModule } from './PeerModule';
+export { CompModule } from './CompModule';
+export { TrendsModule } from './TrendsModule';
+export { AlignModule } from './AlignModule';
