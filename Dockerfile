@@ -1,13 +1,22 @@
 # syntax=docker/dockerfile:1
 
+# ARG before any FROM is global — available to all FROM lines
 ARG PYTHON_VERSION=3.12.3
-FROM python:${PYTHON_VERSION}-alpine as base
 
-# Prevents Python from writing pyc files.
+# ── Stage 1: build React frontend ────────────────────────────
+FROM node:20-alpine AS frontend-builder
+WORKDIR /frontend
+COPY frontend/package*.json ./
+RUN npm ci && npm install --no-save @rollup/rollup-linux-x64-musl
+COPY frontend/ ./
+RUN npm run build
+
+# ── Stage 2: Python / Flask backend ──────────────────────────
+FROM python:${PYTHON_VERSION}-alpine AS base
+
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Create a non-privileged user that the app will run under.
 ARG UID=10001
 RUN adduser \
     --disabled-password \
@@ -18,37 +27,32 @@ RUN adduser \
     --uid "${UID}" \
     appuser
 
-# Install system dependencies
 RUN apk update && apk add --no-cache \
     gcc \
+    g++ \
+    gfortran \
     libc-dev \
     libffi-dev \
     musl-dev \
     build-base \
     python3-dev \
-    py3-pip
+    py3-pip \
+    openblas-dev
 
-# Set the working directory
 WORKDIR /app
 
-# Copy the requirements file
-COPY requirements.txt .
-
-# Install Python dependencies
+COPY backend/requirements.txt .
 RUN python -m pip install --no-cache-dir -r requirements.txt
 
-# Create the uploads directory and set the appropriate permissions
-RUN mkdir -p /app/uploads && chown -R appuser:appuser /app/uploads
+COPY --chown=appuser:appuser . .
 
-# Switch to the non-privileged user
+# Copy the built React app from stage 1
+COPY --from=frontend-builder --chown=appuser:appuser /frontend/dist ./frontend/dist
+
+ENV HOME=/tmp
+
 USER appuser
 
-# Copy the source code into the container
-COPY . .
-
-# Expose the port that the application listens on
 EXPOSE 5000
 
-# Run the application
-CMD ["gunicorn", "interface:app" ,"-b","0.0.0.0:5000"]
-
+CMD ["gunicorn", "--chdir", "backend", "interface:app", "-b", "0.0.0.0:5000", "--workers", "2", "--worker-tmp-dir", "/tmp"]

@@ -1,0 +1,13 @@
+design_handoff_strata/
+design_handoff_strata/*
+frontend/node_modules/
+frontend/dist/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+
+# Local upload cache
+uploads/

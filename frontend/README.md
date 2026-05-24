@@ -125,6 +125,60 @@ frontend/src/
         └── index.js
 ```
 
+## Testing
+
+### Running Tests
+
+```bash
+cd frontend
+npm test               # run all tests once (verbose — each test case shown)
+npm run test:watch     # watch mode for development
+npm run test:coverage  # generate coverage report (coverage/index.html)
+```
+
+### Test Suite Summary
+
+**19 test files · 213 test cases · 100% pass**
+
+All tests live in [`test/frontend/`](../test/frontend/) (at the repo root) and mirror the `src/` structure.
+
+#### Utility Tests (`test/frontend/utils/`) — 14 files, 168 tests
+
+| File | Functions Covered | Tests |
+|------|-------------------|-------|
+| `animationUtils.test.js` | `cubicEaseOut`, `springStep`, `clampNorm`, `calcRingGeometry`, `calcStepDuration`, `generateTraceId` | 18 |
+| `alignUtils.test.js` | `calcAlignDelta`, `alignDeltaTone`, `formatAlignDelta`, `buildAlignRows` | 17 |
+| `careerNetworkUtils.test.js` | `colorForFit`, `findPlacedNode`, `placeOnRing`, `buildCareerNetworkLayout`, `calcNodeRadius`, `formatFitPct`, `resolveLinkEndpoints`, `calcLinkStrokeWidth` | 26 |
+| `colorUtils.test.js` | `toneToColor` | 7 |
+| `compBandUtils.test.js` | `scaleCompValue`, `formatComp` | 7 |
+| `distributionUtils.test.js` | `distributionBarFill`, `buildDistributionGeometry` | 11 |
+| `jdFitUtils.test.js` | `formatStrengthPct`, `impactTone` | 10 |
+| `overviewUtils.test.js` | `overviewCellBorders` | 8 |
+| `passwordUtils.test.js` | `scorePassword` | 9 |
+| `peerUtils.test.js` | `formatPeerDelta` | 4 |
+| `radarUtils.test.js` | `calcRadarAngle`, `calcRadarPoint`, `buildRadarPath`, `buildRadarGeometry` | 17 |
+| `skillHeatmapUtils.test.js` | `colorForSkill`, `calcCellPosition`, `calcDotRadius` | 11 |
+| `sparklineUtils.test.js` | `buildSparklineGeometry` | 7 |
+| `atsUtils.test.js` | `countPassedChecks` | 4 |
+
+#### Component Tests (`test/frontend/components/`) — 5 files, 45 tests
+
+| File | Component | Tests |
+|------|-----------|-------|
+| `Pill.test.jsx` | `Pill` — tone modifier classes, dot class | 8 |
+| `Card.test.jsx` | `Card` — header visibility, padding, className | 10 |
+| `Insight.test.jsx` | `Insight` — quoted text, source rendering | 6 |
+| `Bar.test.jsx` | `Bar` — width clamping, label rendering | 9 |
+| `CountUp.test.jsx` | `CountUp` — animation, suffix, decimals | 6 |
+
+### Test Infrastructure
+
+- **Framework**: [Vitest](https://vitest.dev/) v4 (native Vite integration)
+- **Component testing**: [@testing-library/react](https://testing-library.com/react) v16 + jsdom
+- **Matchers**: `@testing-library/jest-dom`
+- **Coverage**: `@vitest/coverage-v8` (provider: v8)
+- **Coverage scope**: `src/utils/**` + `src/components/ui/**`
+
 ## Running Locally
 
 ```bash
