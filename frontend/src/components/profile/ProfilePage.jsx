@@ -6,15 +6,8 @@ import { PwField } from './PwField';
 import { PwStrength } from './PwStrength';
 import { Toggle } from './Toggle';
 import { Mini } from './Mini';
-import {
-  profileAccountFields,
-  profileAccountStats,
-  profileSessions,
-  profileDataStats,
-  profileToggles,
-  profileDeletionDate,
-  profileLastUpdated,
-} from '../../data/mockData';
+import { useAnalysis } from '../../context/AnalysisContext';
+import { useAuth } from '../../context/AuthContext';
 
 const TABS = [
   { id: 'account',  label: 'Account',        code: '01' },
@@ -26,7 +19,38 @@ const TABS = [
 // -------------------- ProfilePage ----------- START ----------
 // -- Calls : savePassword, Card, Field, PwField, PwStrength, Toggle, Mini
 // -- Called by: Dashboard
+function yearsOfExp(experience) {
+  if (!experience?.length) return 0;
+  const earliest = experience.reduce((min, e) => e.joining_date < min ? e.joining_date : min, experience[0].joining_date);
+  return Math.max(0, Math.floor((Date.now() - new Date(earliest)) / 3.156e10));
+}
+
+function buildFieldsFromUser(user) {
+  const exp = user.experience?.[0];
+  return [
+    { label: 'Full name',     value: user.full_name },
+    { label: 'Email',         value: user.email },
+    { label: 'Current title', value: exp?.job_title || '—' },
+    { label: 'Company',       value: exp?.company || '—' },
+    { label: 'Location',      value: user.location || '—' },
+    { label: 'Age',           value: user.age ? `${user.age} years old` : '—' },
+    { label: 'Years exp.',    value: `${yearsOfExp(user.experience)} years` },
+    { label: 'Username',      value: user.username, link: true },
+  ];
+}
+
 export function ProfilePage({ profile, onBack }) {
+  const { user } = useAuth();
+  const {
+    profileAccountFields = () => [],
+    profileAccountStats = [],
+    profileSessions = [],
+    profileDataStats = [],
+    profileToggles = [],
+    profileDeletionDate = '',
+    profileLastUpdated = '',
+  } = useAnalysis();
+
   const [tab, setTab] = useState('account');
   const [pw, setPw] = useState({ current: '', next: '', confirm: '' });
   const [pwSaved, setPwSaved] = useState(false);
@@ -34,8 +58,11 @@ export function ProfilePage({ profile, onBack }) {
   const [deleteConfirm, setDeleteConfirm] = useState('');
   const [deleted, setDeleted] = useState(false);
 
-  const cv = profile?.cv || { name: 'Aria Chen', role: 'Senior Product Designer', years: 8, company: 'Lumina Health' };
-  const fields = profileAccountFields(cv);
+  const cv = user
+    ? { name: user.full_name, role: user.experience?.[0]?.job_title || '—', years: yearsOfExp(user.experience), company: user.experience?.[0]?.company || '—' }
+    : (profile?.cv || { name: 'Aria Chen', role: 'Senior Product Designer', years: 8, company: 'Lumina Health' });
+
+  const fields = user ? buildFieldsFromUser(user) : profileAccountFields(cv);
 
   // -------------------- savePassword ----------- START ----------
   // -- Calls : nothing (leaf)

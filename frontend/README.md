@@ -36,8 +36,12 @@ frontend/src/
 ├── main.jsx
 ├── styles/
 │   └── globals.css
+├── config/
+│   └── appConfig.js                 # Mode-aware config (apiBaseUrl, useMockData)
+├── context/
+│   └── AnalysisContext.jsx          # Analysis data provider + useAnalysis / useSetAnalysis hooks
 ├── data/
-│   └── mockData.js                  # All mock data (single source of truth)
+│   └── mockData.js                  # Mock data — consumed only in dev_local mode
 ├── hooks/
 │   └── useTweaks.js                 # Stateful settings hook
 │
@@ -179,13 +183,172 @@ All tests live in [`test/frontend/`](../test/frontend/) (at the repo root) and m
 - **Coverage**: `@vitest/coverage-v8` (provider: v8)
 - **Coverage scope**: `src/utils/**` + `src/components/ui/**`
 
+## API Endpoints
+
+All requests are routed through `/api`. In `dev_cluster` the Vite dev server proxies `/api` to `VITE_DEV_BACKEND_URL`; in `production` the frontend calls `VITE_API_BASE_URL` directly.
+
+### Analysis
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/api/analyze` | Submit a CV and optional JD; returns the full analysis result |
+
+**Request** — `multipart/form-data`
+
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `cv` | file | yes | PDF, DOCX, or DOC, max 16 MB |
+| `jd` | string | no | Raw job-description text; omit for a general market analysis |
+
+**Response** — `application/json`
+
+The response object is consumed directly by `AnalysisContext` and distributed to every module. All keys are required unless marked optional.
+
+```jsonc
+{
+  // Reasoning trace shown during the analysis animation (optional)
+  "reasoningTrace": [{ "label": "…", "detail": "…", "ms": 120 }],
+
+  // Overview module
+  "overviewSummary":         { "eyebrow": "…", "titleStrong": "…", "titleRest": "…", "body": "…" },
+  "overviewCards":           [{ "id": "…", "label": "…", "value": "…", "sub": "…", "tone": "good|warn|bad" }],
+  "overviewRecommendations": [{ "n": 1, "title": "…", "body": "…", "impact": "…" }],
+  "overviewInsight":         { "text": "…", "source": "…" },
+  "overviewMarketData":      { "openRoles": 0, "openRolesTrend": "…", "openRolesChange": "…",
+                               "applicantsPerRole": 0, "applicantsTrend": "…", "applicantsChange": "…",
+                               "commentary": "…" },
+  "overviewVectorSignature": { "model": "…", "preview": "…", "dims": 0, "cohort": "…" },
+
+  // JD Fit module (only present when a JD was submitted)
+  "jdFitSummary":  { "eyebrow": "…", "titleReach": "…", "titleRest": "…", "sub": "…",
+                     "score": 0, "evidencedMatches": 0, "totalRequirements": 0,
+                     "gapsFlagged": 0, "gapBreakdown": "…", "keywordDensity": 0 },
+  "jdFitMatches":  [{ "req": "…", "evidence": "…", "strength": 0 }],
+  "jdFitGaps":     [{ "req": "…", "impact": "…", "fix": "…" }],
+
+  // ATS module
+  "atsSummary": { "eyebrow": "…", "titleScore": "…", "titleRest": "…", "sub": "…",
+                  "score": 0, "dwellTime": "…", "normDwellTime": "…" },
+  "atsChecks":  [{ "label": "…", "passed": true, "note": "…" }],
+
+  // Skill Gap module
+  "skillGapSummary":    { "eyebrow": "…", "overIndexTopic": "…", "underIndexTopic": "…", "sub": "…" },
+  "skillGapSkills":     ["…"],
+  "skillGapTracks":     ["…"],
+  "skillGapData":       [[0]],
+  "skillGapDeltaCards": [{ "topic": "…", "you": 0, "market": 0, "delta": 0 }],
+
+  // Alternative Paths module
+  "altPathsSummary": { "eyebrow": "…", "titleWarn": "…", "titleRest": "…", "sub": "…" },
+  "altPathsCenter":  { "id": "…", "label": "…", "fit": 0 },
+  "altPathsNodes":   [{ "id": "…", "label": "…", "fit": 0, "ring": 0 }],
+  "altPathsLinks":   [{ "source": "…", "target": "…" }],
+  "altPathsInsight": { "text": "…", "source": "…" },
+
+  // Peer Benchmark module
+  "peerSummary":    { "eyebrow": "…", "titlePercentile": "…", "sub": "…" },
+  "peerBuckets":    [{ "lo": 0, "hi": 0, "count": 0 }],
+  "peerYouBucket":  { "lo": 0, "hi": 0 },
+  "peerP50Bucket":  { "lo": 0, "hi": 0 },
+  "peerDimensions": [{ "dim": "…", "you": 0, "p50": 0, "p90": 0 }],
+
+  // Compensation module
+  "compSummary":  { "eyebrow": "…", "titleUnderpaid": "…", "sub": "…", "bandTitle": "…" },
+  "compBandData": { "min": 0, "p25": 0, "median": 0, "p75": 0, "max": 0, "you": 0 },
+  "compRefCards": [{ "label": "…", "value": "…", "sub": "…" }],
+
+  // Trends module
+  "trendsSummary": { "eyebrow": "…", "titleGrowing": "…", "sub": "…" },
+  "trendRising":   [{ "topic": "…", "delta": 0, "note": "…" }],
+  "trendFalling":  [{ "topic": "…", "delta": 0, "note": "…" }],
+  "trendsInsight": { "text": "…", "source": "…" },
+
+  // Alignment module
+  "alignSummary": { "eyebrow": "…", "titleAccent": "…", "titleWarn": "…", "sub": "…" },
+  "alignAxes":    ["…"],
+  "alignYou":     [0],
+  "alignMarket":  [0]
+}
+```
+
+---
+
+### User Profile
+
+Implemented in `API/user_profile/interface.py`.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/profile/{username}` | Fetch a user's profile |
+| `POST` | `/api/profile/` | Create a new profile (registration) |
+| `PATCH` | `/api/profile/{username}` | Update account information |
+| `POST` | `/api/profile/{username}/password` | Change password |
+| `DELETE` | `/api/profile/{username}/sessions/{sessionId}` | Revoke an active session |
+| `DELETE` | `/api/profile/{username}` | Permanently delete account |
+
+**`POST /api/profile/`** — `multipart/form-data`
+
+| Field | Type | Required |
+|-------|------|----------|
+| `username` | string | yes |
+| `email` | string | yes |
+| `password_hash` | string | yes |
+| `full_name` | string | yes |
+| `date_of_birth` | string `YYYY-MM-DD` | yes |
+| `location` | string | no |
+| `cv` | file | yes |
+
+**Profile response shape** (`GET` and `POST` return the same model)
+
+```jsonc
+{
+  "username": "…",
+  "email": "…",
+  "full_name": "…",
+  "date_of_birth": "YYYY-MM-DD",
+  "location": "…",
+  "created_at": "ISO-8601",
+  // fields below map to the ProfilePage UI
+  "profileAccountStats":  [{ "label": "…", "value": "…", "sub": "…" }],
+  "profileSessions":      [{ "device": "…", "loc": "…", "when": "…", "current": true }],
+  "profileDataStats":     [{ "label": "…", "value": "…" }],
+  "profileToggles":       [{ "label": "…", "description": "…", "enabled": true }],
+  "profileDeletionDate":  "…",
+  "profileLastUpdated":   "…"
+}
+```
+
+---
+
+### Data & Privacy
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/api/profile/{username}/export` | Export all user data as JSON |
+| `GET` | `/api/profile/{username}/export/pdf` | Export all analyses as a PDF bundle |
+| `DELETE` | `/api/profile/{username}/data` | Purge all stored CV and analysis data |
+
+---
+
 ## Running Locally
 
 ```bash
 cd frontend
 npm install
-npm run dev
+npm run dev:local    # dev_local  — mock data, no backend required
+npm run dev:cluster  # dev_cluster — proxies /api to VITE_DEV_BACKEND_URL (default localhost:5000)
+npm run build        # production build, uses VITE_API_BASE_URL
 ```
+
+### Modes
+
+| Script | Mode | Data source | Proxy |
+|--------|------|-------------|-------|
+| `dev:local` | `dev_local` | `mockData.js` via `AnalysisContext` | none |
+| `dev:cluster` | `dev_cluster` | Live backend (docker-compose) | `/api` → `VITE_DEV_BACKEND_URL` |
+| `build` | `production` | Live backend | none (direct `VITE_API_BASE_URL`) |
+
+Configure each mode by editing the corresponding `.env.<mode>` file at `frontend/`.
 
 The backend API is served separately; see the root `README.md` for Docker Compose setup.
 

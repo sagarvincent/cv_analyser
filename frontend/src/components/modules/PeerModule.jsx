@@ -2,12 +2,16 @@
 import { Card, SectionHeader } from '../ui';
 import { Distribution } from '../charts';
 import { PeerDimensionCard } from './PeerDimensionCard';
-import { peerSummary, peerBuckets, peerYouBucket, peerP50Bucket, peerDimensions } from '../../data/mockData';
+import { useAnalysis } from '../../context/AnalysisContext';
 
 // -------------------- PeerModule ----------- START ----------
 // -- Calls : SectionHeader, Card, Distribution, PeerDimensionCard
 // -- Called by: App (via MODULE_COMPONENTS)
 export function PeerModule({ chartStyle }) {
+  const {
+    peerSummary = {}, peerBuckets = [], peerYouBucket = {},
+    peerP50Bucket = {}, peerDimensions = [],
+  } = useAnalysis();
   return (
     <div className="fade-in">
       <SectionHeader

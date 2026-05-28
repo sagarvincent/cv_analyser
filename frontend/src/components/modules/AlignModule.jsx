@@ -3,12 +3,13 @@ import { Card, SectionHeader } from '../ui';
 import { Radar } from '../charts';
 import { AlignRow } from './AlignRow';
 import { buildAlignRows } from '../../utils/alignUtils';
-import { alignSummary, alignAxes, alignYou, alignMarket } from '../../data/mockData';
+import { useAnalysis } from '../../context/AnalysisContext';
 
 // -------------------- AlignModule ----------- START ----------
 // -- Calls : SectionHeader, Card, Radar, AlignRow, buildAlignRows
 // -- Called by: App (via MODULE_COMPONENTS)
 export function AlignModule() {
+  const { alignSummary = {}, alignAxes = [], alignYou = [], alignMarket = [] } = useAnalysis();
   const rows = buildAlignRows(alignAxes, alignYou, alignMarket);
 
   return (

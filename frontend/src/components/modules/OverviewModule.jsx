@@ -3,15 +3,16 @@ import { Card, Insight, SectionHeader } from '../ui';
 import { OverviewMetricCard } from './OverviewMetricCard';
 import { OverviewRecommendation } from './OverviewRecommendation';
 import { OverviewMarketSignal } from './OverviewMarketSignal';
-import {
-  overviewCards, overviewSummary, overviewRecommendations,
-  overviewInsight, overviewMarketData, overviewVectorSignature,
-} from '../../data/mockData';
+import { useAnalysis } from '../../context/AnalysisContext';
 
 // -------------------- OverviewModule ----------- START ----------
 // -- Calls : SectionHeader, Card, Insight, OverviewMetricCard, OverviewRecommendation, OverviewMarketSignal
 // -- Called by: App (via MODULE_COMPONENTS)
 export function OverviewModule({ layout, onNav }) {
+  const {
+    overviewCards = [], overviewSummary = {}, overviewRecommendations = [],
+    overviewInsight = {}, overviewMarketData = {}, overviewVectorSignature = {},
+  } = useAnalysis();
   return (
     <div className="fade-in">
       <SectionHeader

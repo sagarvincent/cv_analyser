@@ -1,12 +1,16 @@
 // Layer: 1 (module screen) — alternative career paths module
 import { Card, Insight, SectionHeader } from '../ui';
 import { CareerNetwork } from '../charts';
-import { altPathsSummary, altPathsCenter, altPathsNodes, altPathsLinks, altPathsInsight } from '../../data/mockData';
+import { useAnalysis } from '../../context/AnalysisContext';
 
 // -------------------- AltPathsModule ----------- START ----------
 // -- Calls : SectionHeader, Card, CareerNetwork, Insight
 // -- Called by: App (via MODULE_COMPONENTS)
 export function AltPathsModule({ chartStyle }) {
+  const {
+    altPathsSummary = {}, altPathsCenter = {}, altPathsNodes = [],
+    altPathsLinks = [], altPathsInsight = {},
+  } = useAnalysis();
   return (
     <div className="fade-in">
       <SectionHeader

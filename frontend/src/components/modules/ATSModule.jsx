@@ -2,12 +2,13 @@
 import { Ring, SectionHeader } from '../ui';
 import { ATSCheckItem } from './ATSCheckItem';
 import { countPassedChecks } from '../../utils/atsUtils';
-import { atsSummary, atsChecks } from '../../data/mockData';
+import { useAnalysis } from '../../context/AnalysisContext';
 
 // -------------------- ATSModule ----------- START ----------
 // -- Calls : SectionHeader, Ring, ATSCheckItem, countPassedChecks
 // -- Called by: App (via MODULE_COMPONENTS)
 export function ATSModule() {
+  const { atsSummary = {}, atsChecks = [] } = useAnalysis();
   const passed = countPassedChecks(atsChecks);
 
   return (

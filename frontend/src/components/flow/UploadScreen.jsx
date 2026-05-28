@@ -1,27 +1,66 @@
 // Layer: 1 (flow screen) — CV and JD upload interaction
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { CapabilityCell } from './CapabilityCell';
-import { SAMPLE_CV, SAMPLE_JD, CAPABILITY_STRIP } from '../../data/mockData';
+import { validateFile } from '../../utils/fileValidationUtils';
+import { appConfig } from '../../config/appConfig';
+import { useAnalysis } from '../../context/AnalysisContext';
 
 // -------------------- UploadScreen ----------- START ----------
-// -- Calls : useSample, submit, CapabilityCell
+// -- Calls : useSample, handleFile, submit, CapabilityCell
 // -- Called by: App
 export function UploadScreen({ onComplete }) {
+  const { sampleCv, sampleJd, capabilityStrip = [] } = useAnalysis();
+
   const [cv, setCv] = useState(null);
   const [jd, setJd] = useState('');
   const [dragOver, setDragOver] = useState(false);
+  const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef(null);
 
   // -------------------- useSample ----------- START ----------
   // -- Calls : nothing (leaf)
   // -- Called by: UploadScreen
-  const useSample = () => { setCv(SAMPLE_CV); setJd(SAMPLE_JD); };
-  //-------------------- useSample ------------- END ----------------
+  const useSample = () => { setError(null); setCv(sampleCv); setJd(sampleJd); };
+  // -------------------- useSample ------------- END ----------------
+
+  // -------------------- handleFile ----------- START ----------
+  // -- Calls : validateFile
+  // -- Called by: UploadScreen (drop handler, file input onChange)
+  const handleFile = (file) => {
+    const err = validateFile(file);
+    if (err) { setError(err); return; }
+    setError(null);
+    setCv({ file: file.name, _file: file });
+  };
+  // -------------------- handleFile ------------- END ----------------
 
   // -------------------- submit ----------- START ----------
   // -- Calls : onComplete
   // -- Called by: UploadScreen
-  const submit = () => { onComplete({ cv: cv || SAMPLE_CV, jd: jd || SAMPLE_JD }); };
-  //-------------------- submit ------------- END ----------------
+  const submit = async () => {
+    if (appConfig.useMockData) {
+      onComplete({ cv: cv || sampleCv, jd: jd || sampleJd });
+      return;
+    }
+    if (!cv?._file) { setError('Please upload a CV file to continue.'); return; }
+    setError(null);
+    setSubmitting(true);
+    try {
+      const form = new FormData();
+      form.append('cv', cv._file);
+      form.append('jd', jd);
+      const res = await fetch(`${appConfig.apiBaseUrl}/analyze`, { method: 'POST', body: form });
+      if (!res.ok) throw new Error(`Server error ${res.status}`);
+      const data = await res.json();
+      onComplete(data);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  // -------------------- submit ------------- END ----------------
 
   return (
     <div className="fade-in" style={{ maxWidth: 980, margin: '0 auto', padding: '60px 40px' }}>
@@ -50,29 +89,52 @@ export function UploadScreen({ onComplete }) {
             <span className="pill pill-accent pill-dot">REQUIRED</span>
           </div>
 
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.docx,.doc"
+            style={{ display: 'none' }}
+            onChange={(e) => { if (e.target.files[0]) handleFile(e.target.files[0]); e.target.value = ''; }}
+          />
+
           {!cv ? (
-            <div
-              onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={(e) => { e.preventDefault(); setDragOver(false); setCv(SAMPLE_CV); }}
-              style={{
-                border: `1px dashed ${dragOver ? 'var(--accent)' : 'var(--border-2)'}`,
-                borderRadius: 6, padding: '44px 20px', textAlign: 'center',
-                background: dragOver ? 'var(--accent-glow)' : 'transparent',
-                transition: '200ms ease', cursor: 'pointer',
-              }}
-              onClick={() => setCv(SAMPLE_CV)}
-            >
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.14em', color: 'var(--muted)', marginBottom: 14 }}>
-                PDF · DOCX · LINKEDIN.JSON
+            <>
+              <div
+                onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault(); setDragOver(false);
+                  const file = e.dataTransfer.files[0];
+                  if (file) handleFile(file);
+                }}
+                style={{
+                  border: `1px dashed ${error ? 'var(--error, #e05)' : dragOver ? 'var(--accent)' : 'var(--border-2)'}`,
+                  borderRadius: 6, padding: '44px 20px', textAlign: 'center',
+                  background: dragOver ? 'var(--accent-glow)' : 'transparent',
+                  transition: '200ms ease', cursor: 'pointer',
+                }}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.14em', color: 'var(--muted)', marginBottom: 14 }}>
+                  PDF · DOCX · DOC · max 16 MB
+                </div>
+                <div style={{ color: 'var(--text-2)' }}>
+                  Drag & drop or <span style={{ color: 'var(--accent)', textDecoration: 'underline', textUnderlineOffset: 3 }}>browse</span>
+                </div>
+                <div style={{ marginTop: 18, fontSize: 11.5, color: 'var(--muted)' }}>
+                  Encrypted in transit · purged after analysis
+                </div>
               </div>
-              <div style={{ color: 'var(--text-2)' }}>
-                Drag & drop or <span style={{ color: 'var(--accent)', textDecoration: 'underline', textUnderlineOffset: 3 }}>browse</span>
-              </div>
-              <div style={{ marginTop: 18, fontSize: 11.5, color: 'var(--muted)' }}>
-                Encrypted in transit · purged after analysis
-              </div>
-            </div>
+              {error && (
+                <div style={{
+                  marginTop: 10, padding: '8px 12px', borderRadius: 4,
+                  background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.3)',
+                  color: 'var(--error, #e05)', fontSize: 12, fontFamily: 'var(--font-mono)',
+                }}>
+                  {error}
+                </div>
+              )}
+            </>
           ) : (
             <div style={{
               border: '1px solid var(--accent-d)', borderRadius: 6,
@@ -84,14 +146,18 @@ export function UploadScreen({ onComplete }) {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--accent)', letterSpacing: '0.1em',
                 border: '1px solid var(--accent-d)',
-              }}>PDF</div>
+              }}>
+                {cv.file.split('.').pop().toUpperCase()}
+              </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 500, fontSize: 14 }}>{cv.file}</div>
-                <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 2, fontFamily: 'var(--font-mono)' }}>
-                  → {cv.name} · {cv.role} · {cv.years}y · {cv.company}
-                </div>
+                {cv.name && (
+                  <div style={{ color: 'var(--muted)', fontSize: 12, marginTop: 2, fontFamily: 'var(--font-mono)' }}>
+                    → {cv.name} · {cv.role} · {cv.years}y · {cv.company}
+                  </div>
+                )}
               </div>
-              <button className="btn btn-ghost" onClick={() => setCv(null)}>✕</button>
+              <button className="btn btn-ghost" onClick={() => { setCv(null); setError(null); }}>✕</button>
             </div>
           )}
         </div>
@@ -122,21 +188,25 @@ export function UploadScreen({ onComplete }) {
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 32, gap: 16 }}>
-        <button className="btn btn-ghost" onClick={useSample}>↻ Load sample profile (Aria Chen)</button>
-        <button className="btn btn-primary" onClick={submit} style={{ padding: '12px 22px', fontSize: 12 }}>
-          Run analysis ⏵
+        {sampleCv && (
+          <button className="btn btn-ghost" onClick={useSample}>↻ Load sample profile (Aria Chen)</button>
+        )}
+        <button className="btn btn-primary" onClick={submit} disabled={submitting} style={{ padding: '12px 22px', fontSize: 12, marginLeft: 'auto' }}>
+          {submitting ? 'Submitting…' : 'Run analysis ⏵'}
         </button>
       </div>
 
-      <div style={{
-        marginTop: 64, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: 0, borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)',
-      }}>
-        {CAPABILITY_STRIP.map(([n, l]) => (
-          <CapabilityCell key={l} value={n} label={l} />
-        ))}
-      </div>
+      {capabilityStrip.length > 0 && (
+        <div style={{
+          marginTop: 64, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+          gap: 0, borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)',
+        }}>
+          {capabilityStrip.map(([n, l]) => (
+            <CapabilityCell key={l} value={n} label={l} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
-//-------------------- UploadScreen ------------- END ----------------
+// -------------------- UploadScreen ------------- END ----------------

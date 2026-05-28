@@ -3,12 +3,13 @@ import { Card, SectionHeader } from '../ui';
 import { CompBand } from '../charts';
 import { CompRefCard } from './CompRefCard';
 import { formatComp } from '../../utils/compBandUtils';
-import { compSummary, compBandData, compRefCards } from '../../data/mockData';
+import { useAnalysis } from '../../context/AnalysisContext';
 
 // -------------------- CompModule ----------- START ----------
 // -- Calls : SectionHeader, Card, CompBand, CompRefCard, formatComp
 // -- Called by: App (via MODULE_COMPONENTS)
 export function CompModule() {
+  const { compSummary = {}, compBandData = {}, compRefCards = [] } = useAnalysis();
   return (
     <div className="fade-in">
       <SectionHeader

@@ -1,10 +1,18 @@
 // Layer: 1 (layout) — composes brand, profile card, nav items, and footer
 import { SidebarNavItem } from './SidebarNavItem';
+import { useAuth } from '../../context/AuthContext';
 
 // -------------------- Sidebar ----------- START ----------
 // -- Calls : SidebarNavItem
 // -- Called by: Dashboard
 export function Sidebar({ profile, modules, activeId, setActiveId, onRestart, showProfile, setShowProfile }) {
+  const { user, isGuest } = useAuth();
+  const displayName = user?.full_name || profile?.cv?.name || (isGuest ? 'Guest' : 'Aria Chen');
+  const displayRole = user?.experience?.[0]?.job_title || profile?.cv?.role || (isGuest ? 'Guest' : 'SR. PRODUCT DESIGNER');
+  const displayYears = user?.experience?.length
+    ? Math.max(1, Math.floor((Date.now() - new Date(user.experience.at(-1).joining_date)) / 3.156e10))
+    : (profile?.cv?.years ?? (isGuest ? null : 8));
+
   return (
     <aside style={{
       borderRight: '1px solid var(--border)',
@@ -47,21 +55,24 @@ export function Sidebar({ profile, modules, activeId, setActiveId, onRestart, sh
             background: 'linear-gradient(135deg, var(--accent), var(--violet))',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontFamily: 'var(--font-display)', fontSize: 16, color: 'var(--ink)', fontWeight: 500, fontStyle: 'italic',
-          }}>{profile?.cv?.name?.[0] || 'A'}</div>
+          }}>{displayName[0]?.toUpperCase() || 'G'}</div>
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {profile?.cv?.name || 'Aria Chen'}
+              {displayName}
             </div>
             <div className="t-mono" style={{ fontSize: 10, color: 'var(--muted)', letterSpacing: '0.06em' }}>
-              {profile?.cv?.role?.toUpperCase() || 'SR. PRODUCT DESIGNER'}
+              {displayRole.toUpperCase()}
             </div>
           </div>
           <span style={{ color: showProfile ? 'var(--accent)' : 'var(--muted)', fontSize: 12 }}>›</span>
         </div>
         <div className="hairline" style={{ margin: '12px -2px' }} />
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, fontFamily: 'var(--font-mono)', color: 'var(--muted)', letterSpacing: '0.06em' }}>
-          <span>{profile?.cv?.years || 8}Y EXP · PRO</span>
-          <span style={{ color: 'var(--accent)' }}>● ANALYSED</span>
+          <span>{displayYears != null ? `${displayYears}Y EXP` : 'GUEST'}{!isGuest && ' · PRO'}</span>
+          {isGuest
+            ? <span style={{ color: 'var(--muted)' }}>○ GUEST</span>
+            : <span style={{ color: 'var(--accent)' }}>● ANALYSED</span>
+          }
         </div>
       </button>
 
