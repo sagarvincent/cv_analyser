@@ -1,12 +1,13 @@
 // Layer: 1 (module screen) — market trends module
 import { Card, Insight, SectionHeader } from '../ui';
 import { TrendItem } from './TrendItem';
-import { trendsSummary, trendRising, trendFalling, trendsInsight } from '../../data/mockData';
+import { useAnalysis } from '../../context/AnalysisContext';
 
 // -------------------- TrendsModule ----------- START ----------
 // -- Calls : SectionHeader, Card, TrendItem, Insight
 // -- Called by: App (via MODULE_COMPONENTS)
 export function TrendsModule() {
+  const { trendsSummary = {}, trendRising = [], trendFalling = [], trendsInsight = {} } = useAnalysis();
   return (
     <div className="fade-in">
       <SectionHeader

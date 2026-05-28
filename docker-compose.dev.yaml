@@ -1,7 +1,23 @@
 services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_DEV_BACKEND_URL: http://api:8001
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - api
+    restart: unless-stopped
+
   api:
     build:
       context: ./API
+      dockerfile: Dockerfile.dev
     ports:
       - "8001:8001"
     environment:
@@ -10,36 +26,23 @@ services:
       DB_NAME: ${DB_NAME:-cv_analyser}
       DB_USER: ${DB_USER:-cv_user}
       DB_PASSWORD: ${DB_PASSWORD:-changeme}
+    volumes:
+      - ./API:/app
     depends_on:
       db:
         condition: service_healthy
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8001/openapi.json"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
-
-  frontend:
-    build:
-      context: ./frontend
-      args:
-        VITE_API_BASE_URL: /api
-    ports:
-      - "80:80"
-    depends_on:
-      - api
-    restart: unless-stopped
 
   db:
     image: postgres:16-alpine
+    ports:
+      - "5432:5432"
     environment:
       POSTGRES_DB: ${DB_NAME:-cv_analyser}
       POSTGRES_USER: ${DB_USER:-cv_user}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - db_data_dev:/var/lib/postgresql/data
       - ./database/user_profile/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-cv_user} -d ${DB_NAME:-cv_analyser}"]
@@ -50,4 +53,4 @@ services:
     restart: unless-stopped
 
 volumes:
-  db_data:
+  db_data_dev:

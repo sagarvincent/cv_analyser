@@ -4,8 +4,11 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "dev": "vite --mode dev_local",
+    "dev:local": "vite --mode dev_local",
+    "dev:cluster": "vite --mode dev_cluster",
+    "build": "vite build --mode production",
+    "build:production": "vite build --mode production",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

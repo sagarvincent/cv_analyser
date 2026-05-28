@@ -2,18 +2,19 @@
 import { useState, useEffect, useRef } from 'react';
 import { springStep, calcStepDuration, generateTraceId } from '../../utils/animationUtils';
 import { TraceRow } from './TraceRow';
-import { REASONING_TRACE } from '../../data/mockData';
+import { useAnalysis } from '../../context/AnalysisContext';
 
 // -------------------- AnalysisScreen ----------- START ----------
 // -- Calls : springStep, calcStepDuration, generateTraceId, TraceRow
 // -- Called by: App
 export function AnalysisScreen({ onComplete }) {
+  const { reasoningTrace = [] } = useAnalysis();
   const [step, setStep] = useState(0);
   const [progress, setProgress] = useState(0);
   const traceId = useRef(generateTraceId());
 
   useEffect(() => {
-    if (step >= REASONING_TRACE.length) {
+    if (step >= reasoningTrace.length) {
       const t = setTimeout(onComplete, 700);
       return () => clearTimeout(t);
     }
@@ -25,7 +26,7 @@ export function AnalysisScreen({ onComplete }) {
   useEffect(() => {
     let raf;
     const tick = () => {
-      const target = step / REASONING_TRACE.length;
+      const target = step / reasoningTrace.length;
       setProgress(p => springStep(p, target, 0.12));
       raf = requestAnimationFrame(tick);
     };
@@ -63,14 +64,14 @@ export function AnalysisScreen({ onComplete }) {
       </div>
 
       <div className="card" style={{ padding: '8px 0', maxHeight: 460, overflow: 'hidden' }}>
-        {REASONING_TRACE.slice(0, step + 1).map((row, i) => (
+        {reasoningTrace.slice(0, step + 1).map((row, i) => (
           <TraceRow key={i} row={row} isActive={i === step} isDone={i < step} />
         ))}
       </div>
 
       <div style={{ marginTop: 24, display: 'flex', justifyContent: 'space-between', color: 'var(--muted)', fontSize: 11.5, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}>
-        <span>STAGE {step + 1} / {REASONING_TRACE.length}</span>
-        <span>{(step / REASONING_TRACE.length * 100).toFixed(0)}% · ETA {Math.max(0, REASONING_TRACE.length - step)}S</span>
+        <span>STAGE {step + 1} / {reasoningTrace.length}</span>
+        <span>{(step / reasoningTrace.length * 100).toFixed(0)}% · ETA {Math.max(0, reasoningTrace.length - step)}S</span>
       </div>
     </div>
   );

@@ -2,12 +2,16 @@
 import { Card, SectionHeader } from '../ui';
 import { SkillHeatmap } from '../charts';
 import { SkillGapDeltaCard } from './SkillGapDeltaCard';
-import { skillGapSummary, skillGapSkills, skillGapTracks, skillGapData, skillGapDeltaCards } from '../../data/mockData';
+import { useAnalysis } from '../../context/AnalysisContext';
 
 // -------------------- SkillGapModule ----------- START ----------
 // -- Calls : SectionHeader, Card, SkillHeatmap, SkillGapDeltaCard
 // -- Called by: App (via MODULE_COMPONENTS)
 export function SkillGapModule({ chartStyle }) {
+  const {
+    skillGapSummary = {}, skillGapSkills = [], skillGapTracks = [],
+    skillGapData = [], skillGapDeltaCards = [],
+  } = useAnalysis();
   return (
     <div className="fade-in">
       <SectionHeader

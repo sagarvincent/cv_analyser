@@ -2,12 +2,13 @@
 import { Card, CountUp, Ring, SectionHeader } from '../ui';
 import { JDFitMatchItem } from './JDFitMatchItem';
 import { JDFitGapItem } from './JDFitGapItem';
-import { jdFitSummary, jdFitMatches, jdFitGaps } from '../../data/mockData';
+import { useAnalysis } from '../../context/AnalysisContext';
 
 // -------------------- JDFitModule ----------- START ----------
 // -- Calls : SectionHeader, Ring, CountUp, Card, JDFitMatchItem, JDFitGapItem
 // -- Called by: App (via MODULE_COMPONENTS)
 export function JDFitModule() {
+  const { jdFitSummary = {}, jdFitMatches = [], jdFitGaps = [] } = useAnalysis();
   return (
     <div className="fade-in">
       <SectionHeader
