@@ -35,7 +35,7 @@ async def create_profile_endpoint(
     pool=Depends(_get_pool),
     username: str = Form(...),
     email: str = Form(...),
-    password_hash: str = Form(...),
+    password: str = Form(...),
     full_name: str = Form(...),
     date_of_birth: str = Form(..., description="YYYY-MM-DD"),
     location: str | None = Form(default=None),
@@ -43,7 +43,7 @@ async def create_profile_endpoint(
 ):
     try:
         profile = await service.create_profile(
-            pool, username, email, password_hash, full_name, date_of_birth, location, cv
+            pool, username, email, password, full_name, date_of_birth, location, cv
         )
     except ValueError as exc:
         if str(exc) == "duplicate":

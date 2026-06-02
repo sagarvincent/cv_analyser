@@ -11,3 +11,12 @@ __pycache__/
 
 # Local upload cache
 uploads/
+
+# TLS certificates — never commit private keys. certs/README.md is tracked via the
+# negation below; everything else in certs/ (the PEMs) is ignored.
+certs/*
+!certs/README.md
+*.pem
+
+# Local env (domain, ACME email, DB secrets). .env.example is committed instead.
+.env

@@ -1,13 +1,16 @@
+import logging
 import os
 import uuid
 from datetime import date
 from pathlib import Path
 
 import asyncpg
+import httpx
 from asyncpg import Pool
 from fastapi import UploadFile
 from security import hash_password
 
+from clients import analyser_client
 from user_profile import queries
 from user_profile.models import (
     AspirationOut,
@@ -17,10 +20,12 @@ from user_profile.models import (
     QualificationOut,
 )
 
+logger = logging.getLogger(__name__)
+
 _ALLOWED_MIME = {
     "application/pdf": "pdf",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
-    "application/msword": "doc",
+    "text/plain": "txt",
 }
 
 
@@ -73,36 +78,56 @@ async def get_profile(pool: Pool, username: str) -> ProfileResponse | None:
 # -------------------- _save_cv_to_disk ----------- START ----------
 # -- Calls : nothing (leaf)
 # -- Called by: create_profile
-async def _save_cv_to_disk(cv: UploadFile, username: str) -> tuple[str, int, str]:
+def _save_cv_to_disk(cv: UploadFile, file_bytes: bytes, username: str) -> tuple[str, int, str]:
     upload_dir = Path(os.environ.get("CV_UPLOAD_DIR", "cv_uploads"))
     upload_dir.mkdir(parents=True, exist_ok=True)
 
     ext = _ALLOWED_MIME.get(cv.content_type or "", "bin")
     filename = f"{username}_{uuid.uuid4().hex}.{ext}"
     dest = upload_dir / filename
+    dest.write_bytes(file_bytes)
 
-    data = await cv.read()
-    dest.write_bytes(data)
-
-    return str(dest), len(data), cv.content_type or "application/octet-stream"
+    return str(dest), len(file_bytes), cv.content_type or "application/octet-stream"
 # -------------------- _save_cv_to_disk ------------- END ----------------
 
 
+# -------------------- _try_parse_cv ----------- START ----------
+# -- Calls : analyser_client.parse_cv
+# -- Called by: create_profile
+async def _try_parse_cv(file_bytes: bytes, filename: str, content_type: str) -> dict | None:
+    try:
+        return await analyser_client.parse_cv(file_bytes, filename, content_type)
+    except httpx.HTTPError as exc:
+        logger.warning("analyser parse failed for %s: %s", filename, exc)
+        return None
+# -------------------- _try_parse_cv ------------- END ----------------
+
+
 # -------------------- create_profile ----------- START ----------
-# -- Calls : _save_cv_to_disk, queries.insert_user, queries.insert_cv_upload, get_profile
+# -- Calls : _save_cv_to_disk, _try_parse_cv, queries.insert_user,
+#            queries.insert_cv_upload, get_profile
 # -- Called by: interface.create_profile_endpoint
 async def create_profile(
     pool: Pool,
     username: str,
     email: str,
-    password_hash: str,
+    password: str,
     full_name: str,
     date_of_birth: str,
     location: str | None,
     cv: UploadFile,
 ) -> ProfileResponse:
-    storage_path, file_size, mime_type = await _save_cv_to_disk(cv, username)
-    bcrypt_hash = hash_password(password_hash)
+    file_bytes = await cv.read()
+    storage_path, file_size, mime_type = _save_cv_to_disk(cv, file_bytes, username)
+    parsed = await _try_parse_cv(file_bytes, cv.filename or "upload", mime_type)
+    if parsed is not None:
+        logger.info(
+            "parsed CV for %s: method=%s sections=%s",
+            username,
+            parsed.get("extraction_method"),
+            list((parsed.get("sections") or {}).keys()),
+        )
+    bcrypt_hash = hash_password(password)
     dob = date.fromisoformat(date_of_birth)
 
     try:
