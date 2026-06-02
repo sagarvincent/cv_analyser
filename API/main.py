@@ -5,6 +5,7 @@ import asyncpg
 from dotenv import load_dotenv
 from fastapi import FastAPI
 
+from analyze.interface import router as analyze_router
 from auth.interface import router as auth_router
 from user_profile.interface import router as user_profile_router
 
@@ -29,3 +30,4 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="CV Analyser — User Profile API", lifespan=lifespan)
 app.include_router(auth_router, prefix="/api")
 app.include_router(user_profile_router, prefix="/api")
+app.include_router(analyze_router, prefix="/api")

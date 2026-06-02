@@ -6,6 +6,7 @@ import { toneToColor } from '../../utils/colorUtils';
 // -- Calls : buildSparklineGeometry, toneToColor
 // -- Called by: OverviewModule, TrendsModule
 export function Spark({ data, width = 120, height = 32, tone = 'accent' }) {
+  if (!data || data.length < 2) return <svg width={width} height={height} style={{ display: 'block' }} />;
   const { pts, lastX, lastY } = buildSparklineGeometry(data, width, height);
   const color = toneToColor(tone);
 
