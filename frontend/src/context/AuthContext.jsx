@@ -14,16 +14,16 @@ export function AuthProvider({ children }) {
   // -------------------- login ----------- START ----------
   // -- Calls : fetch /api/profile/verify
   // -- Called by: AuthScreen
-  const login = useCallback(async (username, passwordHash) => {
+  const login = useCallback(async (username, password) => {
     if (appConfig.useMockData) {
       setUser({ username, full_name: 'Demo User', email: 'demo@example.com', age: 0, location: null, experience: [], qualifications: [], aspirations: [], projects: [] });
       return { ok: true };
     }
     try {
-      const res = await fetch(`${appConfig.apiBaseUrl}/profile/verify`, {
+      const res = await fetch(`${appConfig.apiBaseUrl}/auth/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password_hash: passwordHash }),
+        body: JSON.stringify({ username, password }),
       });
       if (!res.ok) return { ok: false, error: 'Invalid username or password.' };
       setUser(await res.json());

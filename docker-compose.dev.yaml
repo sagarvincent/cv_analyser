@@ -7,9 +7,13 @@ services:
       - "5173:5173"
     environment:
       VITE_DEV_BACKEND_URL: http://api:8001
+      # TLS material so the browser ↔ Vite dev server leg is HTTPS. See certs/README.md.
+      VITE_SSL_CERT_FILE: /app/certs/fullchain.pem
+      VITE_SSL_KEY_FILE: /app/certs/privkey.pem
     volumes:
       - ./frontend:/app
       - /app/node_modules
+      - ./certs:/app/certs:ro
     depends_on:
       - api
     restart: unless-stopped
@@ -26,11 +30,24 @@ services:
       DB_NAME: ${DB_NAME:-cv_analyser}
       DB_USER: ${DB_USER:-cv_user}
       DB_PASSWORD: ${DB_PASSWORD:-changeme}
+      ANALYSER_URL: http://analyser:8002
     volumes:
       - ./API:/app
     depends_on:
       db:
         condition: service_healthy
+      analyser:
+        condition: service_started
+    restart: unless-stopped
+
+  analyser:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./backend:/app
     restart: unless-stopped
 
   db:

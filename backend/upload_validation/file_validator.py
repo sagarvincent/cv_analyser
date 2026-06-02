@@ -1,4 +1,4 @@
-ALLOWED_EXTENSIONS = {"pdf", "docx", "doc"}
+ALLOWED_EXTENSIONS = {"pdf", "docx", "txt"}
 MAX_FILE_SIZE_BYTES = 16 * 1024 * 1024  # 16 MB
 
 

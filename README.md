@@ -2,15 +2,33 @@
 
 STRATA — a career intelligence platform that ingests a CV (and optionally a target job description) and runs eight analytical "lenses" over it: JD Fit, ATS Readability, Skill Matrix, Peer Benchmark, Compensation, Alternative Paths, Market Trends, and Market Alignment.
 
-The frontend (React 18 + Vite, in [frontend/](frontend/)) is a hi-fi prototype matching the design handoff in [design_handoff_strata/](design_handoff_strata/). The Flask backend ([interface.py](interface.py), [backend/](backend/)) is a scaffold with a stub scorer — all dashboard numbers come from [frontend/src/data/mockData.js](frontend/src/data/mockData.js) today.
+The frontend (React 18 + Vite, in [frontend/](frontend/)) is a hi-fi prototype matching the design handoff in [design/design_handoff_strata/](design/design_handoff_strata/). The platform is now backed by two FastAPI services: an API gateway ([API/](API/)) handling auth and user profiles, and a dedicated analyser service ([backend/](backend/)) that parses CVs. Dashboard lens numbers still come from [frontend/src/data/mockData.js](frontend/src/data/mockData.js) until the lens analyzers are wired up.
 
 The full pre-build survey (utilities the dashboard offers, requirements per service, constraints, risks) is in **[STRATA_software_survey.pdf](STRATA_software_survey.pdf)** (re-generate via [utilities/generate_survey_pdf.py](utilities/generate_survey_pdf.py)).
 
 ---
 
+## Current build status
+
+| Layer | Status |
+|---|---|
+| Frontend (upload → analysing → dashboard → profile) | Built |
+| Auth — `POST /api/auth/verify` (bcrypt, asyncpg) | Built |
+| User profile CRUD | Built |
+| CV parser (PDF / DOCX / TXT → sections + ATS red-flags) | Built |
+| Database schema (users, profiles, cv_uploads, …) | Built |
+| Production HTTPS (nginx-proxy + Let's Encrypt) | Built |
+| Lens analyzers (JD Fit, ATS, SkillMatrix, Peer, Comp, Paths, Trends, Align) | Stubbed / mock data |
+| Embedding service + vector cache | Not started |
+| Orchestrator + SSE trace | Not started |
+| Export (PDF brief, share link) | Not started |
+| Observability | Not started |
+
+---
+
 ## Architecture
 
-The system as it would look once the survey's build-targets are in place. The frontend stays where it is; everything else is new or upgraded from the current stub.
+The system as it would look once the survey's build-targets are in place. The frontend and core services are built; the ML pipeline layers are next.
 
 ### System diagram
 
@@ -23,7 +41,7 @@ The system as it would look once the survey's build-targets are in place. The fr
                           HTTPS│  REST/JSON              SSE│ trace events
                                ▼                            ▼
        ┌──────────────────────────────────────────────────────────────────┐
-       │                        API GATEWAY (Flask)                       │
+       │                  API GATEWAY (FastAPI, :8001)                    │
        │   auth middleware • rate-limit • upload cap 16MB • CORS • CSRF   │
        └──┬─────────┬──────────┬───────────┬──────────┬─────────┬─────────┘
           │         │          │           │          │         │
@@ -74,10 +92,10 @@ The system as it would look once the survey's build-targets are in place. The fr
 
 | Component | Owns | Reads from | Writes to | Notes |
 |---|---|---|---|---|
-| **Frontend** | Stages, lens routing, profile UI, SSE consumer | API gateway | — | Already built; needs router + a11y, drop TweaksPanel for prod. |
-| **API gateway** | Auth check, rate limit, request routing, file-size cap | All services | Audit log | Stays as Flask; consider gunicorn + nginx. |
-| **Auth & billing** | OAuth, magic-link, 2FA, sessions, Stripe webhooks, plan state | Postgres | Postgres | TOTP + recovery codes; deletion queue cascades here. |
-| **Ingest service** | CV parser (PDF/DOC/DOCX/TXT → structured), JD NLP, taxonomy normalisation | Object store | Postgres, vector cache key | Single source for `parsed_cv` / `parsed_jd`. Idempotent on content hash. |
+| **Frontend** | Stages, lens routing, profile UI, SSE consumer | API gateway | — | Built; needs router + a11y, drop TweaksPanel for prod. |
+| **API gateway** | Auth check, rate limit, request routing, file-size cap | All services | Audit log | FastAPI; gunicorn + nginx in prod. |
+| **Auth & billing** | Credentials, bcrypt hashing, sessions, Stripe webhooks, plan state | Postgres | Postgres | OAuth / TOTP / Stripe still to add. |
+| **Ingest service** | CV parser (PDF/DOC/DOCX/TXT → structured), JD NLP, taxonomy normalisation | Object store | Postgres, vector cache key | CV parser is built; JD parsing and taxonomy normalisation still to add. |
 | **Embedding service** | One vector per CV, one per JD, versioned, cached | Ingest output | Vector store | Drives the "1536-d preview" the UI shows. |
 | **Orchestrator** | Fan-out across 8 lens analyzers, stream 12 trace stages, assemble overview brief | Embeddings + ref data + analyzers | Postgres (`analyses`) | Owns the 14 s p50 budget. Trace via SSE, backed by Redis pub/sub. |
 | **Lens analyzers** | One pure function per lens, returns the exact shape `mockData.js` declares | parsed_cv, parsed_jd, embeddings, ref data | — | Stateless. Can run in-process or split out per scale need. |
@@ -88,7 +106,31 @@ The system as it would look once the survey's build-targets are in place. The fr
 
 ### Key request flows
 
-#### Analyze (POST → SSE)
+#### Auth (POST)
+
+```
+Browser ──POST /api/auth/verify {username, password}──► API Gateway
+   Gateway ─► auth.service.verify_user(pool, username, password)
+       asyncpg: SELECT user WHERE email = username
+       bcrypt: compare SHA-256(password) against stored hash
+   ◄── 200 ProfileResponse  |  401 Invalid username or password.
+```
+
+#### CV parse (POST)
+
+```
+Browser ──POST /api/user-profile/upload-cv (multipart)──► API Gateway
+   Gateway: validate file (16 MB cap, pdf/docx/txt only)
+   Gateway ─► analyser_client.parse_cv(file_bytes, filename)
+       Analyser (:8002): dispatch_by_extension → extract text
+                         clean_text → CleanedText
+                         segment → Sections (experience, education, skills, …)
+                         build_ats_redflags → AtsRedFlags (10 signals)
+   ◄── ParsedCV {raw_text, sections, extraction_method, ats_redflags}
+   Gateway: stores cv_uploads record in Postgres
+```
+
+#### Analyze (POST → SSE) — planned
 
 ```
 Browser ──POST /analyse (cv file, optional jd text)──► Gateway
@@ -109,9 +151,7 @@ Browser ──POST /analyse (cv file, optional jd text)──► Gateway
 Browser routes to /dashboard/overview.
 ```
 
-The hold-on / stall rule from the design spec lives in the orchestrator: if all stages complete before the UI animation, slow the last stage; if the engine stalls, the scan-line keeps moving but trace messages pause.
-
-#### Lens fetch (GET)
+#### Lens fetch (GET) — planned
 
 ```
 Browser ──GET /api/analyses/{id}/lens/{lensId}──► Gateway
@@ -119,47 +159,30 @@ Browser ──GET /api/analyses/{id}/lens/{lensId}──► Gateway
    ◄── JSON in the exact shape mockData expects.
 ```
 
-Cached at write-time during the original run; no recompute on lens switch.
-
-#### Export brief (GET)
-
-```
-Browser ──GET /api/analyses/{id}/export.pdf──► Gateway
-   Gateway ─► Export service
-       Pulls overview + active lens JSON, renders via headless Chromium
-       using the same OKLCH tokens + Google Fonts as the live UI.
-   ◄── PDF stream.
-```
-
 ### Data model (core tables)
 
 ```
-users(id, email, oauth_provider, plan_id, two_factor_secret, created_at, …)
+-- currently live (database/user_profile/init.sql)
+users(id, username, email, password_hash, created_at)
+qualifications(id, user_id, type, institution, grade, start_date, end_date, source)
+experience(id, user_id, job_title, company, start_date, end_date, description, source)
+aspirations(id, user_id, role, industry, location, salary_min, salary_max, source)
+projects(id, user_id, name, description, url, start_date, end_date, source)
+skills(id, user_id, name, level, years_experience, source)
+cv_uploads(id, user_id, filename, file_path, file_size, status, uploaded_at, parsed_at)
+
+-- planned (full roadmap)
 plans(id, name, stripe_customer_id, renews_at, …)
 sessions(id, user_id, device, ip, last_active, current)
 recovery_codes(id, user_id, code_hash, used_at)
 deletion_requests(id, user_id, scheduled_at, status)
-
 cvs(id, user_id, sha256, storage_url, retention_until, parsed_at)
-parsed_cv(cv_id, structured_json)              -- employers[], titles[], …
-embeddings(cv_id|jd_id, model_version, vector) -- pgvector
-
-analyses(
-  id, user_id, cv_id, jd_text,
-  trace_id, model_version,
-  started_at, finished_at,
-  lens_payloads jsonb              -- 9 keys: overview, jdfit, ats, …
-)
-
-reference.peers(profile_id, vector, cohort_tags[], …)
-reference.postings(role, geo, posted_at, jd_text, …)
-reference.comp(role, geo, p25, p50, p75, source, vintage)
-reference.taxonomy(canonical, synonyms[], type)  -- skills/titles/industries
+embeddings(cv_id|jd_id, model_version, vector)   -- pgvector
+analyses(id, user_id, cv_id, jd_text, trace_id, model_version, started_at, finished_at, lens_payloads jsonb)
+reference.peers / reference.postings / reference.comp / reference.taxonomy
 ```
 
 ### Deployment topology
-
-Stays compatible with the existing ECS workflow ([.github/workflows/ecs-deployment.yaml](.github/workflows/ecs-deployment.yaml)) but introduces explicit services:
 
 ```
                        ┌───────────────────┐
@@ -168,93 +191,218 @@ Stays compatible with the existing ECS workflow ([.github/workflows/ecs-deployme
                        └────────┬──────────┘
                                 │
                        ┌────────▼──────────┐
-                       │       ALB         │
+                       │  nginx-proxy      │  TLS termination (Let's Encrypt)
+                       │  + acme-companion │  virtual-host routing
                        └────────┬──────────┘
                                 │
             ┌───────────────────┼───────────────────┐
             │                   │                   │
    ┌────────▼────────┐ ┌────────▼────────┐ ┌────────▼────────┐
-   │  api-gateway    │ │ orchestrator +  │ │   profile /     │
-   │  (Flask)        │ │ lens analyzers  │ │   auth / billing│
-   │  ECS service    │ │ ECS service     │ │   ECS service   │
-   └────────┬────────┘ └────────┬────────┘ └────────┬────────┘
-            │                   │                   │
-            └───────────────────┼───────────────────┘
-                                │
-            ┌───────────────────┼───────────────────┐
-            ▼                   ▼                   ▼
-       ┌─────────┐         ┌─────────┐         ┌──────────┐
-       │   RDS   │         │  Redis  │         │    S3    │
-       │Postgres │         │ (cache  │         │ raw CVs  │
-       │+pgvector│         │ + pub/  │         │+ exports │
-       └─────────┘         │  sub)   │         └──────────┘
-                           └─────────┘
-   ┌───────────────────────────────────────────┐
-   │   Reference data ETL (EventBridge cron)   │
-   │   → S3 staging → RDS reference.* tables   │
-   └───────────────────────────────────────────┘
-   ┌───────────────────────────────────────────┐
-   │   External: Embedding API, Stripe,        │
-   │   OAuth providers, comp/peer data partner │
-   └───────────────────────────────────────────┘
+   │  frontend       │ │  api (:8001)    │ │  analyser       │
+   │  (nginx, built  │ │  FastAPI        │ │  (:8002)        │
+   │   React dist)   │ │  auth + profile │ │  FastAPI        │
+   └─────────────────┘ └────────┬────────┘ │  cv_parser      │
+                                │          └─────────────────┘
+                       ┌────────▼──────────┐
+                       │  db (Postgres 16) │
+                       └───────────────────┘
 ```
-
-### Build order
-
-The survey's build order maps onto this diagram:
-
-1. **API gateway + ingest service + JDFit/ATS analyzers** — first vertical slice that produces honest numbers. No external data needed.
-2. **Embedding service + vector cache** — unblocks every other lens.
-3. **Reference data layer + ETL** — gate for SkillMatrix, Peer, Comp, Trends, Align (the data-acquisition decision).
-4. **Orchestrator + SSE trace** — turns the animation into something real.
-5. **Auth + billing + profile** — unlocks shippable accounts.
-6. **Export + share** — last-mile polish.
-7. **Observability + a11y + cross-browser** — pre-launch hardening.
 
 ---
 
 ## Repository layout
 
 ```
+API/
+  auth/
+    interface.py        POST /api/auth/verify
+    service.py          verify_user — bcrypt credential check
+    models.py           VerifyRequest
+  user_profile/
+    interface.py        profile CRUD endpoints
+    service.py          asyncpg queries + CV upload, delegates parse to analyser
+  clients/
+    analyser_client.py  async HTTP wrapper → POST http://analyser:8002/cv/parse
+  main.py               FastAPI app, mounts auth + user_profile routers
+  requirements.txt
+  Dockerfile / Dockerfile.dev
+
 backend/
-  interface.py           Flask entry point
-  parsing_fun.py         CV parser
-  similarity_score.py    Lexical scorer (placeholder)
-  requirements.txt       Python deps
-  utilities/             Helper scripts (PDF generation, …)
-frontend/                React 18 + Vite app (hi-fi prototype)
-  vitest.setup.js        Vitest runner setup
-design_handoff_strata/   Canonical design reference (HTML/JSX/CSS)
+  cv_parser/            CV parsing pipeline (4-layer architecture)
+    leaves/
+      extraction_leaves.py   signal computation (stream order, density, encoding)
+      cleaning_leaves.py     whitespace normalization helpers
+      segmentation_leaves.py section detection, heading recognition
+    extractors.py        dispatch_by_extension → PDF / DOCX / TXT extraction
+    cleaner.py           text cleaning → CleanedText
+    segmenter.py         section splitting (Experience, Education, Skills, …)
+    redflags.py          10 ATS red-flag signals
+    parser.py            parse_cv(file_bytes, filename) → ParsedCV  (L2 entry)
+    interface.py         POST /cv/parse  (FastAPI router, L1)
+    models.py            ParsedCV, Sections, AtsRedFlags, …
+  upload_validation/
+    file_validator.py    file type + 16 MB size guard
+  tests/
+    test_cv_parser_extractors.py
+    test_cv_parser_leaves.py
+    test_cv_parser_parse_cv.py
+    test_file_validator.py
+  main.py               FastAPI app, mounts cv_parser router
+  pytest.ini
+  requirements.txt
+  Dockerfile / Dockerfile.dev
+
+frontend/               React 18 + Vite app (hi-fi prototype)
+  src/
+    components/flow/    Upload, Analysing, Dashboard, AuthScreen
+    context/AuthContext.jsx
+    data/mockData.js    All lens outputs (used until analyzers are live)
+  vite.config.js
+  nginx.conf            Production static-file serving
+
+database/
+  user_profile/
+    init.sql            PostgreSQL schema (users, qualifications, experience, …)
+
+certs/                  Local HTTPS material (gitignored)
+  README.md             openssl / mkcert / ACM generation recipes
+
+design/
+  design_handoff_strata/  Canonical design reference (HTML / JSX / CSS)
+
 test/
-  frontend/              Vitest suites (213 tests, mirror frontend/src/)
-  integration/data/      CV/JD fixtures
-  real_data/             Real CV fixtures
-Dockerfile               Container image
-docker-compose.yaml      Local stack
-.github/workflows/       CI + ECS deploy
+  integration/data/     CV/JD fixtures
+  real_data/            Real CV fixtures
+
+docker-compose.yaml     Production stack (nginx-proxy + acme-companion + services)
+docker-compose.dev.yaml Dev stack (hot-reload, local HTTPS on :5173/:8001/:8002)
+.env.example            Environment variable template
 ```
+
+---
 
 ## Local development
 
-Backend:
+### Prerequisites
+
+- Docker Desktop (or Docker Engine + Compose v2)
+- Node 20+ (for frontend-only work without Docker)
+- Python 3.11+ (for backend-only work without Docker)
+
+### Docker (recommended — runs all services together)
+
+**Development** (hot-reload on all services, HTTPS on localhost):
 
 ```
-pip install -r backend/requirements.txt
-python -m backend.interface    # Flask dev server on :5000
-# (or: cd backend && python interface.py)
+# 1. Generate local certs first (see certs/README.md for options, e.g. mkcert)
+mkcert -install
+mkcert -cert-file certs/fullchain.pem -key-file certs/privkey.pem localhost 127.0.0.1
+
+# 2. Copy and fill env (DB defaults are fine for local dev)
+cp .env.example .env
+
+# 3. Start
+docker compose -f docker-compose.dev.yaml up --build
 ```
 
-Frontend:
+Services:
+- Frontend (Vite HMR): https://localhost:5173
+- API gateway: http://localhost:8001 — OpenAPI at `/openapi.json`
+- Analyser: http://localhost:8002 — OpenAPI at `/openapi.json`
+- Postgres: localhost:5432
+
+**Production** (nginx-proxy + Let's Encrypt, requires a public domain):
+
+```
+# Set PROD_DOMAIN and ACME_EMAIL in .env, then:
+docker compose up --build -d
+```
+
+### Running services individually (without Docker)
+
+**API gateway:**
+
+```
+cd API
+pip install -r requirements.txt
+DB_HOST=localhost DB_USER=cv_user DB_PASSWORD=changeme \
+  ANALYSER_URL=http://localhost:8002 \
+  uvicorn main:app --reload --port 8001
+```
+
+**Analyser / CV parser:**
+
+```
+cd backend
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8002
+```
+
+**Frontend:**
 
 ```
 cd frontend
 npm install
-npm run dev                    # Vite on :5173
-npm run build                  # writes to frontend/dist (served by Flask)
+npm run dev       # Vite on :5173
+npm run build     # writes frontend/dist (served by production nginx)
 ```
 
-Docker:
+**Backend tests:**
 
 ```
-docker compose up --build
+cd backend
+pytest
 ```
+
+---
+
+## CV parser
+
+The CV parser (`backend/cv_parser/`) follows a 4-layer architecture (leaves → L3 → L2 → L1):
+
+```
+file_bytes + filename
+    │
+    ▼  extractors.dispatch_by_extension
+    │  → extract_pdf (pdfplumber, digital text or OCR fallback)
+    │  → extract_docx (python-docx)
+    │  → extract_text (plain UTF-8)
+    │
+    ▼  cleaner.clean_text
+    │  → whitespace normalisation → CleanedText
+    │
+    ▼  segmenter.segment
+    │  → heading detection, section splitting
+    │  → Sections { experience[], education[], skills[], other[] }
+    │
+    ▼  redflags.build_ats_redflags
+       → 10 ATS signals:
+         stream_order_anomaly, text_density, encoding_anomaly_rate,
+         extraction_method (digital_pdf|ocr_pdf|docx|text|failed),
+         distinct_bullet_chars, line_length_bimodality,
+         hyphenation_break_rate, heading_detection_rate,
+         section_coherence, unclassified_ratio
+         → AtsRedFlags
+
+ParsedCV { raw_text, sections, extraction_method, ats_redflags }
+```
+
+**Endpoint:** `POST /cv/parse` (multipart, `file` field) → `ParsedCV` JSON
+
+**Pending:**
+- OCR for image-only PDFs (pytesseract + pdf2image, currently stubbed)
+- Two-column PDF reflow
+- Database persistence to `parsed_cvs` table
+- Extended heading / keyword lexicon
+
+---
+
+## Build order
+
+1. **API gateway + ingest service + JDFit/ATS analyzers** — first vertical slice that produces honest numbers.
+2. **Embedding service + vector cache** — unblocks every other lens.
+3. **Reference data layer + ETL** — gate for SkillMatrix, Peer, Comp, Trends, Align.
+4. **Orchestrator + SSE trace** — turns the animation into something real.
+5. **Auth + billing + profile** — unlocks shippable accounts.
+6. **Export + share** — last-mile polish.
+7. **Observability + a11y + cross-browser** — pre-launch hardening.

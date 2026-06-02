@@ -20,7 +20,7 @@ def _get_pool(request: Request):
 # -- Called by: FastAPI POST /api/auth/verify
 @router.post("/verify", response_model=ProfileResponse)
 async def verify_endpoint(body: VerifyRequest, pool=Depends(_get_pool)):
-    profile = await service.verify_user(pool, body.username, body.password_hash)
+    profile = await service.verify_user(pool, body.username, body.password)
     if profile is None:
         raise HTTPException(status_code=401, detail="Invalid username or password.")
     return profile

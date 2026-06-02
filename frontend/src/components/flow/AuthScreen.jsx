@@ -2,11 +2,6 @@
 import { useState, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 
-async function sha256hex(str) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
 const INPUT = {
   width: '100%', padding: '11px 14px',
   background: 'var(--ink-2)', border: '1px solid var(--border)',
@@ -51,8 +46,7 @@ export function AuthScreen({ onAuthComplete, onGuestContinue }) {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const hash = await sha256hex(loginFields.password);
-    const res = await login(loginFields.username, hash);
+    const res = await login(loginFields.username, loginFields.password);
     setLoading(false);
     if (res.ok) onAuthComplete();
     else setError(res.error);
@@ -67,11 +61,10 @@ export function AuthScreen({ onAuthComplete, onGuestContinue }) {
     setError('');
     if (!cvFile) return setError('Please upload your CV to create an account.');
     setLoading(true);
-    const hash = await sha256hex(signupFields.password);
     const fd = new FormData();
     fd.append('username', signupFields.username);
     fd.append('email', signupFields.email);
-    fd.append('password_hash', hash);
+    fd.append('password', signupFields.password);
     fd.append('full_name', signupFields.full_name);
     fd.append('date_of_birth', signupFields.date_of_birth);
     if (signupFields.location) fd.append('location', signupFields.location);
