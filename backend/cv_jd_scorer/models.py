@@ -3,10 +3,14 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+# ── Shared ─────────────────────────────────────────────────────────────────
+
 class ReasoningStep(BaseModel):
     stage: str
     text: str
 
+
+# ── JD Fit ─────────────────────────────────────────────────────────────────
 
 class JdFitMatch(BaseModel):
     topic: str
@@ -33,6 +37,8 @@ class JdFitSummary(BaseModel):
     keywordDensity: int
 
 
+# ── ATS ────────────────────────────────────────────────────────────────────
+
 class AtsCheck(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
@@ -49,15 +55,68 @@ class AtsSummary(BaseModel):
     score: int
 
 
+# ── Request / Response ─────────────────────────────────────────────────────
+
 class ScoreRequest(BaseModel):
     parsed_cv: dict
     jd_text: str
 
 
 class ScoreResult(BaseModel):
+    # Reasoning trace
     reasoningTrace: list[ReasoningStep]
+
+    # JD Fit
     jdFitSummary: JdFitSummary
     jdFitMatches: list[JdFitMatch]
     jdFitGaps: list[JdFitGap]
+
+    # ATS
     atsSummary: AtsSummary
     atsChecks: list[AtsCheck]
+
+    # Skill Gap
+    skillGapSummary: dict
+    skillGapSkills: list[str]
+    skillGapTracks: list[str]
+    skillGapData: list[list[float]]
+    skillGapDeltaCards: list[dict]
+
+    # Peer Benchmark
+    peerSummary: dict
+    peerBuckets: list[int]
+    peerYouBucket: int
+    peerP50Bucket: int
+    peerDimensions: list[dict]
+
+    # Compensation
+    compSummary: dict
+    compBandData: dict
+    compRefCards: list[dict]
+
+    # Alternative Paths
+    altPathsSummary: dict
+    altPathsCenter: dict
+    altPathsNodes: list[dict]
+    altPathsLinks: list[dict]
+    altPathsInsight: dict
+
+    # Market Trends (disabled — static not-available response)
+    trendsSummary: dict
+    trendRising: list[dict]
+    trendFalling: list[dict]
+    trendsInsight: dict
+
+    # Market Alignment
+    alignSummary: dict
+    alignAxes: list[str]
+    alignYou: list[float]
+    alignMarket: list[float]
+
+    # Overview (assembled last)
+    overviewCards: list[dict]
+    overviewSummary: dict
+    overviewRecommendations: list[dict]
+    overviewInsight: dict
+    overviewMarketData: dict
+    overviewVectorSignature: dict
