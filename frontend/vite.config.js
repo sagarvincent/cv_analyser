@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => {
   // Load .env.<mode> so proxy config can read VITE_DEV_BACKEND_URL at build time
   const env = loadEnv(mode, process.cwd(), '');
   // process.env takes precedence so Docker env vars override the .env file
-  const devBackendUrl = process.env.VITE_DEV_BACKEND_URL || env.VITE_DEV_BACKEND_URL || 'http://localhost:8001';
+  const devBackendUrl = process.env.VITE_DEV_BACKEND_URL || env.VITE_DEV_BACKEND_URL || 'http://localhost:8010';
 
   const certFile = process.env.VITE_SSL_CERT_FILE || env.VITE_SSL_CERT_FILE || fromFrontend('../certs/fullchain.pem');
   const keyFile = process.env.VITE_SSL_KEY_FILE || env.VITE_SSL_KEY_FILE || fromFrontend('../certs/privkey.pem');

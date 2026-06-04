@@ -4,10 +4,9 @@ services:
       context: ./frontend
       dockerfile: Dockerfile.dev
     ports:
-      - "5173:5173"
+      - "5200:5173"      # was 5173 — free of all Clearbox ports
     environment:
-      VITE_DEV_BACKEND_URL: http://api:8001
-      # TLS material so the browser ↔ Vite dev server leg is HTTPS. See certs/README.md.
+      VITE_DEV_BACKEND_URL: http://api:8001   # internal container port unchanged
       VITE_SSL_CERT_FILE: /app/certs/fullchain.pem
       VITE_SSL_KEY_FILE: /app/certs/privkey.pem
     volumes:
@@ -23,14 +22,14 @@ services:
       context: ./API
       dockerfile: Dockerfile.dev
     ports:
-      - "8001:8001"
+      - "8010:8001"      # was 8001 — clashed with Clearbox api03-customer-data
     environment:
       DB_HOST: db
       DB_PORT: 5432
       DB_NAME: ${DB_NAME:-cv_analyser}
       DB_USER: ${DB_USER:-cv_user}
       DB_PASSWORD: ${DB_PASSWORD:-changeme}
-      ANALYSER_URL: http://analyser:8002
+      ANALYSER_URL: http://analyser:8002   # internal URL unchanged
     volumes:
       - ./API:/app
     depends_on:
@@ -45,7 +44,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile.dev
     ports:
-      - "8002:8002"
+      - "8011:8002"      # was 8002 — clashed with Clearbox api06-questionnaire-mgmt
     volumes:
       - ./backend:/app
     restart: unless-stopped
@@ -53,7 +52,7 @@ services:
   db:
     image: postgres:16-alpine
     ports:
-      - "5432:5432"
+      - "5440:5432"      # was 5432 — clashed with Clearbox db02-customer-info
     environment:
       POSTGRES_DB: ${DB_NAME:-cv_analyser}
       POSTGRES_USER: ${DB_USER:-cv_user}
