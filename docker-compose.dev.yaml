@@ -7,12 +7,9 @@ services:
       - "5200:5173"      # was 5173 — free of all Clearbox ports
     environment:
       VITE_DEV_BACKEND_URL: http://api:8001   # internal container port unchanged
-      VITE_SSL_CERT_FILE: /app/certs/fullchain.pem
-      VITE_SSL_KEY_FILE: /app/certs/privkey.pem
     volumes:
       - ./frontend:/app
       - /app/node_modules
-      - ./certs:/app/certs:ro
     depends_on:
       - api
     restart: unless-stopped
