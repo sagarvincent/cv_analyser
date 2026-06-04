@@ -275,7 +275,7 @@ test/
   real_data/            Real CV fixtures
 
 docker-compose.yaml     Production stack (nginx-proxy + acme-companion + services)
-docker-compose.dev.yaml Dev stack (hot-reload, local HTTPS on :5173/:8001/:8002)
+docker-compose.dev.yaml Dev stack (hot-reload, local HTTPS on :5200/:8010/:8011)
 .env.example            Environment variable template
 ```
 
@@ -305,11 +305,11 @@ cp .env.example .env
 docker compose -f docker-compose.dev.yaml up --build
 ```
 
-Services:
-- Frontend (Vite HMR): https://localhost:5173
-- API gateway: http://localhost:8001 — OpenAPI at `/openapi.json`
-- Analyser: http://localhost:8002 — OpenAPI at `/openapi.json`
-- Postgres: localhost:5432
+Services (host ports remapped to avoid local clashes; container ports unchanged):
+- Frontend (Vite HMR): https://localhost:5200
+- API gateway: http://localhost:8010 — OpenAPI at `/openapi.json`
+- Analyser: http://localhost:8011 — OpenAPI at `/openapi.json`
+- Postgres: localhost:5440
 
 **Production** (nginx-proxy + Let's Encrypt, requires a public domain):
 
@@ -326,8 +326,8 @@ docker compose up --build -d
 cd API
 pip install -r requirements.txt
 DB_HOST=localhost DB_USER=cv_user DB_PASSWORD=changeme \
-  ANALYSER_URL=http://localhost:8002 \
-  uvicorn main:app --reload --port 8001
+  ANALYSER_URL=http://localhost:8011 \
+  uvicorn main:app --reload --port 8010
 ```
 
 **Analyser / CV parser:**
@@ -335,7 +335,7 @@ DB_HOST=localhost DB_USER=cv_user DB_PASSWORD=changeme \
 ```
 cd backend
 pip install -r requirements.txt
-uvicorn main:app --reload --port 8002
+uvicorn main:app --reload --port 8011
 ```
 
 **Frontend:**
@@ -343,8 +343,8 @@ uvicorn main:app --reload --port 8002
 ```
 cd frontend
 npm install
-npm run dev       # Vite on :5173
-npm run build     # writes frontend/dist (served by production nginx)
+npm run dev -- --port 5200   # Vite (dev_local) on :5200
+npm run build                # writes frontend/dist (served by production nginx)
 ```
 
 **Backend tests:**
