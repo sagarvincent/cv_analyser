@@ -6,7 +6,7 @@ import { ProfilePage } from '../profile/ProfilePage';
 // -------------------- Dashboard ----------- START ----------
 // -- Calls : Sidebar, TopBar, ProfilePage
 // -- Called by: App
-export function Dashboard({ profile, modules, activeId, setActiveId, ActiveModule, tweaks, effectiveChartStyle, onRestart, onNav, showProfile, setShowProfile }) {
+export function Dashboard({ profile, modules, activeId, setActiveId, ActiveModule, effectiveChartStyle, onRestart, onNav, showProfile, setShowProfile }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', minHeight: '100vh' }}>
       <Sidebar
@@ -29,7 +29,7 @@ export function Dashboard({ profile, modules, activeId, setActiveId, ActiveModul
           ) : ActiveModule ? (
             <ActiveModule
               profile={profile}
-              layout={tweaks.layout}
+              layout="grid"
               chartStyle={effectiveChartStyle}
               onNav={onNav}
             />

@@ -4,14 +4,6 @@
 // ─────────────────────────────────────────────────────────────
 
 // ── App config ────────────────────────────────────────────────
-export const TWEAK_DEFAULTS = {
-  theme: 'dark',
-  density: 'regular',
-  layout: 'grid',
-  chartStyleOverride: 'auto',
-  startScreen: 'dashboard',
-};
-
 export const CHART_STYLE_BY_MODULE = {
   paths: 'dots',
   jdfit: 'blocks',
