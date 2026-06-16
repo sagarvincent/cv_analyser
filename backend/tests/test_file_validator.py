@@ -1,6 +1,6 @@
 import pytest
 
-from upload_validation.file_validator import FileValidator, MAX_FILE_SIZE_BYTES
+from BES00_upload_validation.file_validator import FileValidator, MAX_FILE_SIZE_BYTES
 
 
 @pytest.fixture

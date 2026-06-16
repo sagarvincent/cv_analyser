@@ -1,0 +1,1 @@
+JD_PARSER_VERSION = "1.1.0"

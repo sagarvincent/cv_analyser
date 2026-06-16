@@ -42,6 +42,8 @@ services:
       dockerfile: Dockerfile.dev
     ports:
       - "8011:8002"      # was 8002 — clashed with Clearbox api06-questionnaire-mgmt
+    environment:
+      PYTHONPATH: /app/BES02_JDResumeScorer
     volumes:
       - ./backend:/app
     restart: unless-stopped

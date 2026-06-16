@@ -6,7 +6,7 @@ pdfplumber exceptions rather than returning a graceful failed result.
 
 import pytest
 
-from cv_parser.extractors import (
+from BES01_cv_parser.extractors import (
     RawExtraction,
     _extension_of,
     dispatch_by_extension,

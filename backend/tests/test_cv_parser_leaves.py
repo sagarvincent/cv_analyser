@@ -4,19 +4,19 @@ Tests for the pure leaf functions — no I/O, no external dependencies, fast.
 
 import pytest
 
-from cv_parser.leaves.cleaning_leaves import (
+from BES01_cv_parser.leaves.cleaning_leaves import (
     distinct_bullet_chars,
     hyphenation_break_rate,
     line_length_bimodality,
     normalise_whitespace,
 )
-from cv_parser.leaves.extraction_leaves import (
+from BES01_cv_parser.leaves.extraction_leaves import (
     encoding_anomaly_rate,
     page_area,
     stream_order_anomaly,
     text_density,
 )
-from cv_parser.leaves.segmentation_leaves import (
+from BES01_cv_parser.leaves.segmentation_leaves import (
     find_date_range,
     is_heading,
     label_for_heading,

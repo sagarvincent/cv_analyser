@@ -5,23 +5,35 @@ import { validateFile } from '../../utils/fileValidationUtils';
 import { appConfig } from '../../config/appConfig';
 import { useAnalysis } from '../../context/AnalysisContext';
 
+const JD_ALLOWED = ['pdf', 'doc', 'docx', 'json', 'csv'];
+const JD_MAX_BYTES = 16 * 1024 * 1024;
+
 // -------------------- UploadScreen ----------- START ----------
-// -- Calls : useSample, handleFile, submit, CapabilityCell
+// -- Calls : useSample, handleFile, handleJdFile, submit, CapabilityCell
 // -- Called by: App
 export function UploadScreen({ onComplete }) {
   const { sampleCv, sampleJd, capabilityStrip = [] } = useAnalysis();
 
   const [cv, setCv] = useState(null);
   const [jd, setJd] = useState('');
+  const [jdMode, setJdMode] = useState('text'); // 'text' | 'file'
+  const [jdFile, setJdFile] = useState(null);
+  const [jdDragOver, setJdDragOver] = useState(false);
+  const [jdError, setJdError] = useState(null);
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef(null);
+  const jdFileInputRef = useRef(null);
 
   // -------------------- useSample ----------- START ----------
   // -- Calls : nothing (leaf)
   // -- Called by: UploadScreen
-  const useSample = () => { setError(null); setCv(sampleCv); setJd(sampleJd); };
+  const useSample = () => {
+    setError(null); setJdError(null);
+    setCv(sampleCv); setJd(sampleJd);
+    setJdFile(null); setJdMode('text');
+  };
   // -------------------- useSample ------------- END ----------------
 
   // -------------------- handleFile ----------- START ----------
@@ -34,6 +46,24 @@ export function UploadScreen({ onComplete }) {
     setCv({ file: file.name, _file: file });
   };
   // -------------------- handleFile ------------- END ----------------
+
+  // -------------------- handleJdFile ----------- START ----------
+  // -- Calls : nothing (leaf validation)
+  // -- Called by: UploadScreen (JD drop handler, JD file input onChange)
+  const handleJdFile = (file) => {
+    const ext = file.name.includes('.') ? file.name.split('.').pop().toLowerCase() : '';
+    if (!JD_ALLOWED.includes(ext)) {
+      setJdError(`'.${ext || '?'}' not supported. Upload ${JD_ALLOWED.map(e => e.toUpperCase()).join(', ')}.`);
+      return;
+    }
+    if (file.size > JD_MAX_BYTES) {
+      setJdError(`File is ${(file.size / 1024 / 1024).toFixed(1)} MB — exceeds the 16 MB limit.`);
+      return;
+    }
+    setJdError(null);
+    setJdFile({ file: file.name, _file: file });
+  };
+  // -------------------- handleJdFile ------------- END ----------------
 
   // -------------------- submit ----------- START ----------
   // -- Calls : onComplete
@@ -49,7 +79,11 @@ export function UploadScreen({ onComplete }) {
     try {
       const form = new FormData();
       form.append('cv', cv._file);
-      form.append('jd', jd);
+      if (jdMode === 'file' && jdFile?._file) {
+        form.append('jd_file', jdFile._file);
+      } else {
+        form.append('jd', jd);
+      }
       const res = await fetch(`${appConfig.apiBaseUrl}/analyze`, { method: 'POST', body: form });
       if (!res.ok) throw new Error(`Server error ${res.status}`);
       const data = await res.json();
@@ -173,17 +207,105 @@ export function UploadScreen({ onComplete }) {
             </div>
             <span className="pill">UNLOCKS · JD FIT</span>
           </div>
-          <textarea
-            value={jd}
-            onChange={(e) => setJd(e.target.value)}
-            placeholder="Paste a JD here, or leave blank to receive a general market analysis."
-            style={{
-              width: '100%', height: 168, padding: 14,
-              background: 'var(--ink-2)', border: '1px solid var(--border)',
-              borderRadius: 4, color: 'var(--text)', fontSize: 13,
-              resize: 'none', outline: 'none', lineHeight: 1.55,
-            }}
-          />
+
+          {/* Mode toggle */}
+          <div style={{
+            display: 'flex', gap: 2, marginBottom: 12,
+            background: 'var(--ink-2)', borderRadius: 5, padding: 3,
+          }}>
+            {[['text', '// PASTE TEXT'], ['file', '↑ UPLOAD FILE']].map(([mode, label]) => (
+              <button
+                key={mode}
+                onClick={() => { setJdMode(mode); setJdError(null); }}
+                style={{
+                  flex: 1, padding: '5px 10px', borderRadius: 3, border: 'none', cursor: 'pointer',
+                  background: jdMode === mode ? 'var(--surface-2)' : 'transparent',
+                  color: jdMode === mode ? 'var(--text)' : 'var(--muted)',
+                  fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em',
+                  fontWeight: jdMode === mode ? 600 : 400, transition: '150ms ease',
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {jdMode === 'text' ? (
+            <textarea
+              value={jd}
+              onChange={(e) => setJd(e.target.value)}
+              placeholder="Paste a JD here, or leave blank to receive a general market analysis."
+              style={{
+                width: '100%', height: 160, padding: 14,
+                background: 'var(--ink-2)', border: '1px solid var(--border)',
+                borderRadius: 4, color: 'var(--text)', fontSize: 13,
+                resize: 'none', outline: 'none', lineHeight: 1.55, boxSizing: 'border-box',
+              }}
+            />
+          ) : (
+            <>
+              <input
+                ref={jdFileInputRef}
+                type="file"
+                accept=".pdf,.doc,.docx,.json,.csv"
+                style={{ display: 'none' }}
+                onChange={(e) => { if (e.target.files[0]) handleJdFile(e.target.files[0]); e.target.value = ''; }}
+              />
+              {!jdFile ? (
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setJdDragOver(true); }}
+                  onDragLeave={() => setJdDragOver(false)}
+                  onDrop={(e) => {
+                    e.preventDefault(); setJdDragOver(false);
+                    const file = e.dataTransfer.files[0];
+                    if (file) handleJdFile(file);
+                  }}
+                  onClick={() => jdFileInputRef.current?.click()}
+                  style={{
+                    border: `1px dashed ${jdError ? 'var(--error, #e05)' : jdDragOver ? 'var(--accent)' : 'var(--border-2)'}`,
+                    borderRadius: 6, padding: '36px 20px', textAlign: 'center',
+                    background: jdDragOver ? 'var(--accent-glow)' : 'transparent',
+                    transition: '200ms ease', cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.14em', color: 'var(--muted)', marginBottom: 14 }}>
+                    PDF · DOC · DOCX · JSON · CSV · max 16 MB
+                  </div>
+                  <div style={{ color: 'var(--text-2)' }}>
+                    Drag & drop or <span style={{ color: 'var(--accent)', textDecoration: 'underline', textUnderlineOffset: 3 }}>browse</span>
+                  </div>
+                </div>
+              ) : (
+                <div style={{
+                  border: '1px solid var(--accent-d)', borderRadius: 6,
+                  padding: 18, background: 'var(--accent-glow)',
+                  display: 'flex', alignItems: 'center', gap: 14,
+                }}>
+                  <div style={{
+                    width: 44, height: 56, background: 'var(--surface-3)', borderRadius: 3,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--accent)', letterSpacing: '0.1em',
+                    border: '1px solid var(--accent-d)',
+                  }}>
+                    {jdFile.file.split('.').pop().toUpperCase()}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 500, fontSize: 14 }}>{jdFile.file}</div>
+                  </div>
+                  <button className="btn btn-ghost" onClick={() => { setJdFile(null); setJdError(null); }}>✕</button>
+                </div>
+              )}
+              {jdError && (
+                <div style={{
+                  marginTop: 10, padding: '8px 12px', borderRadius: 4,
+                  background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.3)',
+                  color: 'var(--error, #e05)', fontSize: 12, fontFamily: 'var(--font-mono)',
+                }}>
+                  {jdError}
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
 

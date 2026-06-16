@@ -1,0 +1,10 @@
+{
+  "_comment": "Career phase vocabulary shared across all scoring engines. Edit here; engines import from cv_jd_scorer.taxonomy.",
+  "phases": [
+    {"id": "explore",   "label": "Exploration",  "description": "Early career or career-switching; broad skill acquisition"},
+    {"id": "build",     "label": "Building",     "description": "Deepening expertise; individual contributor peak"},
+    {"id": "lead",      "label": "Leading",      "description": "Managing teams or technical direction"},
+    {"id": "scale",     "label": "Scaling",      "description": "Org-level impact; executive or principal track"},
+    {"id": "pivot",     "label": "Pivoting",     "description": "Active career transition across domains or functions"}
+  ]
+}

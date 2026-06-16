@@ -1,0 +1,13 @@
+{
+  "_comment": "Job family taxonomy shared across all scoring engines. Edit here; engines import from cv_jd_scorer.taxonomy.",
+  "families": [
+    {"id": "design",       "label": "Design",              "aliases": ["product designer", "ux designer", "ui designer", "visual designer"]},
+    {"id": "research",     "label": "Research",            "aliases": ["ux researcher", "user researcher", "research ops"]},
+    {"id": "engineering",  "label": "Engineering",         "aliases": ["software engineer", "frontend engineer", "backend engineer", "fullstack", "design engineer"]},
+    {"id": "product",      "label": "Product Management",  "aliases": ["product manager", "product owner", "associate pm"]},
+    {"id": "data",         "label": "Data & Analytics",    "aliases": ["data analyst", "data scientist", "analytics engineer"]},
+    {"id": "content",      "label": "Content & Writing",   "aliases": ["content designer", "ux writer", "technical writer"]},
+    {"id": "management",   "label": "People Management",   "aliases": ["design manager", "engineering manager", "director", "vp", "head of"]},
+    {"id": "strategy",     "label": "Strategy & Ops",      "aliases": ["design strategist", "program manager", "chief of staff"]}
+  ]
+}

@@ -10,7 +10,7 @@ import pathlib
 
 import pytest
 
-from cv_parser.parser import parse_cv
+from BES01_cv_parser.parser import parse_cv
 
 # ---------------------------------------------------------------------------
 # Synthetic fixture — a well-structured CV as plain text
