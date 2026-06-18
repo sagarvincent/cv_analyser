@@ -13,9 +13,9 @@ from collections import defaultdict
 
 from cv_jd_scorer.engine_registry import _REGISTRY, _load_engine
 
-_DEFAULT_DATA = "backend/BES02_JDResumeScorer/eval_data/labelled/pairs.jsonl"
+_DEFAULT_DATA = "backend/BES03_JDResumeScorer/eval_data/labelled/pairs.jsonl"
 
-_TYPES = ("high_match", "confusing", "high_mismatch")
+_TYPES = ("high_match", "medium_match", "low_match")
 _SUBSCORES = ("keyword_overlap", "seniority", "domain", "skills", "experience")
 
 

@@ -274,8 +274,8 @@ test/
   integration/data/     CV/JD fixtures
   real_data/            Real CV fixtures
 
-docker-compose.yaml     Production stack (nginx-proxy + acme-companion + services)
-docker-compose.dev.yaml Dev stack (hot-reload, local HTTPS on :5200/:8010/:8011)
+docker-compose.prod.yaml Production stack (nginx + services)
+docker-compose.dev.yaml  Dev stack (hot-reload, local on :20001/:20002/:20003)
 .env.example            Environment variable template
 ```
 
@@ -306,16 +306,15 @@ docker compose -f docker-compose.dev.yaml up --build
 ```
 
 Services (host ports remapped to avoid local clashes; container ports unchanged):
-- Frontend (Vite HMR): https://localhost:5200
-- API gateway: http://localhost:8010 — OpenAPI at `/openapi.json`
-- Analyser: http://localhost:8011 — OpenAPI at `/openapi.json`
-- Postgres: localhost:5440
+- Frontend (Vite HMR): http://localhost:20001
+- API gateway: http://localhost:20002 — OpenAPI at `/openapi.json`
+- Analyser: http://localhost:20003 — OpenAPI at `/openapi.json`
+- Postgres: localhost:20004
 
 **Production** (nginx-proxy + Let's Encrypt, requires a public domain):
 
 ```
-# Set PROD_DOMAIN and ACME_EMAIL in .env, then:
-docker compose up --build -d
+docker compose -f docker-compose.prod.yaml up --build -d
 ```
 
 ### Running services individually (without Docker)

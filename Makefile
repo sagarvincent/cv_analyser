@@ -2,19 +2,19 @@ dev:
 	docker compose -f docker-compose.dev.yaml up -d
 
 prod:
-	docker compose up -d
+	docker compose -f docker-compose.prod.yaml up -d
 
 down-dev:
 	docker compose -f docker-compose.dev.yaml down
 
 down:
-	docker compose down
+	docker compose -f docker-compose.prod.yaml down
 
 build:
-	docker compose build --no-cache
+	docker compose -f docker-compose.prod.yaml build --no-cache
 
 logs:
-	docker compose logs -f
+	docker compose -f docker-compose.prod.yaml logs -f
 
 logs-acme:
-	docker compose logs -f nginx-proxy-acme
+	docker compose -f docker-compose.prod.yaml logs -f nginx-proxy-acme
