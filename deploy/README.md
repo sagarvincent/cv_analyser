@@ -60,19 +60,19 @@ sudo usermod -aG docker deploy          # run compose without sudo
 
 ### 2. Clone the repo to the deploy path
 
-Pick a path and keep it consistent with the `DEPLOY_PATH` secret (e.g. `/opt/strata`):
+This must match the `DEPLOY_PATH` secret — here, `/production`:
 
 ```bash
-sudo mkdir -p /opt/strata && sudo chown deploy:deploy /opt/strata
-sudo -u deploy git clone git@github.com:sagarvincent/cv_analyser.git /opt/strata
-cd /opt/strata && sudo -u deploy git checkout production
+sudo mkdir -p /production && sudo chown deploy:deploy /production
+sudo -u deploy git clone git@github.com:sagarvincent/cv_analyser.git /production
+cd /production && sudo -u deploy git checkout production
 ```
 
 For a private repo, give the `deploy` user read access — either a GitHub **deploy key** (`ssh-keygen` on the box, add the public half as a read-only deploy key on the repo) or clone over HTTPS with a token. Create the production `.env`:
 
 ```bash
-sudo -u deploy cp /opt/strata/.env.example /opt/strata/.env
-sudo -u deploy nano /opt/strata/.env      # set DB_PASSWORD etc.
+sudo -u deploy cp /production/.env.example /production/.env
+sudo -u deploy nano /production/.env      # set DB_PASSWORD etc.
 ```
 
 ### 3. SSH key for the CI → server hop
@@ -110,7 +110,7 @@ Set these under **Settings → Environments → `production` → Secrets** (the 
 | `SSH_HOST` | The Access hostname, e.g. `ssh.strata.example.com` |
 | `SSH_USER` | `deploy` |
 | `SSH_PRIVATE_KEY` | Contents of `deploy_key` (the private half, full PEM including header/footer) |
-| `DEPLOY_PATH` | Repo path on the server, e.g. `/opt/strata` |
+| `DEPLOY_PATH` | Repo path on the server, e.g. `/production` |
 | `CF_ACCESS_CLIENT_ID` | Cloudflare Access service token *Client ID* (ends in `.access`) |
 | `CF_ACCESS_CLIENT_SECRET` | Cloudflare Access service token *Client Secret* |
 
@@ -125,7 +125,7 @@ export TUNNEL_SERVICE_TOKEN_ID=<client-id>
 export TUNNEL_SERVICE_TOKEN_SECRET=<client-secret>
 ssh -o ProxyCommand="cloudflared access ssh --hostname ssh.strata.example.com" \
     -i deploy_key deploy@ssh.strata.example.com \
-    "cd /opt/strata && docker compose -f docker-compose.prod.yaml ps"
+    "cd /production && docker compose -f docker-compose.prod.yaml ps"
 ```
 
 **In CI**, push a trivial commit to `production` and watch the **Deploy** run. The health-check step polls the `api` container's Docker health status (defined in `docker-compose.prod.yaml`) for up to two minutes.
