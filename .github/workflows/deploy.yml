@@ -1,0 +1,78 @@
+name: Deploy
+
+# Production deploys fire when code lands on the production branch (i.e. when a
+# development -> production PR is merged). The box sits behind a Cloudflare
+# tunnel with no public inbound SSH, so we reach it via `cloudflared access ssh`
+# gated by a Cloudflare Access service token, then let the server build and
+# restart the stack itself.
+on:
+  push:
+    branches: [production]
+
+# Never let two deploys race; a newer one waits for the current to finish.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build & restart on server
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+    steps:
+      - name: Install cloudflared
+        run: |
+          curl -sSL --output cloudflared.deb \
+            https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+          sudo dpkg -i cloudflared.deb
+
+      - name: Configure SSH over Cloudflare Access
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          cat >> ~/.ssh/config <<EOF
+          Host deploy-target
+            HostName ${{ secrets.SSH_HOST }}
+            User ${{ secrets.SSH_USER }}
+            IdentityFile ~/.ssh/id_deploy
+            IdentitiesOnly yes
+            ProxyCommand cloudflared access ssh --hostname %h
+            StrictHostKeyChecking accept-new
+            ConnectTimeout 30
+          EOF
+
+      - name: Deploy
+        env:
+          # cloudflared reads these to authenticate to Cloudflare Access
+          # non-interactively (sent as CF-Access-Client-Id / -Secret headers).
+          TUNNEL_SERVICE_TOKEN_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          TUNNEL_SERVICE_TOKEN_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+        run: |
+          ssh deploy-target "set -euo pipefail && \
+            cd '${{ secrets.DEPLOY_PATH }}' && \
+            git fetch --prune origin production && \
+            git checkout production && \
+            git reset --hard origin/production && \
+            docker compose -f docker-compose.prod.yaml up -d --build --remove-orphans && \
+            docker image prune -f"
+
+      - name: Health check
+        env:
+          TUNNEL_SERVICE_TOKEN_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          TUNNEL_SERVICE_TOKEN_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+        run: |
+          ssh deploy-target "set -e; \
+            cd '${{ secrets.DEPLOY_PATH }}'; \
+            echo 'Waiting for api to report healthy...'; \
+            for i in \$(seq 1 12); do \
+              cid=\$(docker compose -f docker-compose.prod.yaml ps -q api); \
+              status=\$(docker inspect --format '{{ .State.Health.Status }}' \"\$cid\" 2>/dev/null || echo none); \
+              if [ \"\$status\" = healthy ]; then echo 'api healthy'; exit 0; fi; \
+              echo \"attempt \$i: api=\$status\"; sleep 10; \
+            done; \
+            echo 'api did not become healthy in time'; \
+            docker compose -f docker-compose.prod.yaml ps; \
+            exit 1"
