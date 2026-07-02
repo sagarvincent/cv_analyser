@@ -28,7 +28,7 @@ services:
     build:
       context: ./backend
     environment:
-      PYTHONPATH: /app/BES02_JDResumeScorer
+      PYTHONPATH: /app/BES03_JDResumeScorer
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8002/openapi.json"]

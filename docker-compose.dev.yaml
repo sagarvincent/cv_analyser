@@ -43,7 +43,7 @@ services:
     ports:
       - "20003:8002"
     environment:
-      PYTHONPATH: /app/BES02_JDResumeScorer
+      PYTHONPATH: /app/BES03_JDResumeScorer
     volumes:
       - ./backend:/app
     restart: unless-stopped

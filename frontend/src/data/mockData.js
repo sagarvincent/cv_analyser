@@ -151,36 +151,36 @@ export const jdFitGaps = [
   { topic: 'Wealth / investing fluency',    impact: 'LOW',  note: 'Not blocking — but a domain artefact would help.' },
 ];
 
-// ── Skill Gap module ───────────────────────────────────────────
-export const skillGapSummary = {
-  eyebrow: 'Skill Matrix · cohort = Sr→Dir design leadership',
-  overIndexTopic: 'craft',
-  underIndexTopic: 'compliance',
-  sub: 'The matrix below ranks you against four reference tracks. The largest negative deltas — strategy and regulatory fluency — are the levers worth pulling.',
+// ── Skill Matrix module ────────────────────────────────────────
+// Rows = skill categories (taxonomy + emergent JD skills); columns = cohorts.
+export const skillMatrixSummary = {
+  eyebrow: 'SKILL MATRIX',
+  bucket: 'Design Manager',
+  overIndexTopic: 'Design & Craft',
+  underIndexTopic: 'Leadership & Strategy',
+  sub: 'Profile: Design Manager · 6 JD categories scored. Your craft outpaces the role\'s ask — strategy and stakeholder leadership are the levers worth pulling.',
 };
 
-export const skillGapSkills = [
-  'Design Systems', 'Research', 'Prototyping', 'Strategy',
-  'Hiring', 'Data/Analytics', 'Storytelling', 'Compliance/Reg',
+export const skillMatrixCategories = [
+  'Design & Craft', 'Research & Data', 'Communication & Influence',
+  'Leadership & Strategy', 'Technical & Engineering', 'Design Systems',
 ];
 
-export const skillGapTracks = ['YOU', 'PEER P50', 'PEER P90', 'JD ASK', 'DIRECTOR TIER'];
+export const skillMatrixCohorts = ['YOU', 'JD ASK', 'BUCKET NORM', 'PEER P50'];
 
-export const skillGapData = [
-  [0.95, 0.72, 0.91, 0.85, 0.70],
-  [0.78, 0.68, 0.84, 0.65, 0.68],
-  [0.88, 0.74, 0.82, 0.55, 0.58],
-  [0.72, 0.62, 0.86, 0.88, 0.92],
-  [0.55, 0.50, 0.78, 0.82, 0.85],
-  [0.62, 0.58, 0.80, 0.75, 0.82],
-  [0.85, 0.68, 0.78, 0.72, 0.85],
-  [0.28, 0.45, 0.62, 0.75, 0.70],
+export const skillMatrixData = [
+  [0.92, 0.70, 0.78, 0.5],
+  [0.74, 0.62, 0.66, 0.5],
+  [0.81, 0.68, 0.72, 0.5],
+  [0.48, 0.82, 0.80, 0.5],
+  [0.55, 0.60, 0.58, 0.5],
+  [0.70, 0.55, 0.50, 0.5],
 ];
 
-export const skillGapDeltaCards = [
-  { label: 'BIGGEST OVER-INDEX',  topic: 'Design Systems', delta: '+27', color: 'var(--good)',   note: 'You sit 27 points above peer P50 — your strongest weapon when negotiating.' },
-  { label: 'BIGGEST UNDER-INDEX', topic: 'Compliance/Reg', delta: '−42', color: 'var(--bad)',    note: 'Closing this gap by 20 pts roughly doubles your fintech-Director shortlist surface.' },
-  { label: 'MOST UNDERVALUED',    topic: 'Storytelling',   delta: '+13', color: 'var(--accent)', note: 'Strong but invisible — your CV under-narrates impact. Re-frame three bullets.' },
+export const skillMatrixDeltaCards = [
+  { label: 'OVER-INDEX',    topic: 'Design & Craft',        delta: '+22', color: 'var(--good)',   note: 'You exceed the JD\'s demand in this area — lead with it.' },
+  { label: 'BIGGEST GAP',   topic: 'Leadership & Strategy', delta: '−34', color: 'var(--warn)',   note: 'The JD asks for more than your CV currently signals here.' },
+  { label: 'CLOSEST MATCH', topic: 'Research & Data',       delta: '+12', color: 'var(--text-2)', note: 'Your coverage aligns closely with the JD\'s expectation.' },
 ];
 
 // ── Alt Paths module ───────────────────────────────────────────

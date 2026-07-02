@@ -27,12 +27,12 @@ const INITIAL_DATA = import.meta.env.VITE_APP_MODE === 'dev_local' ? {
   // ATS
   atsSummary:              mock.atsSummary,
   atsChecks:               mock.atsChecks,
-  // Skill Gap
-  skillGapSummary:         mock.skillGapSummary,
-  skillGapSkills:          mock.skillGapSkills,
-  skillGapTracks:          mock.skillGapTracks,
-  skillGapData:            mock.skillGapData,
-  skillGapDeltaCards:      mock.skillGapDeltaCards,
+  // Skill Matrix
+  skillMatrixSummary:      mock.skillMatrixSummary,
+  skillMatrixCategories:   mock.skillMatrixCategories,
+  skillMatrixCohorts:      mock.skillMatrixCohorts,
+  skillMatrixData:         mock.skillMatrixData,
+  skillMatrixDeltaCards:   mock.skillMatrixDeltaCards,
   // Alt Paths
   altPathsSummary:         mock.altPathsSummary,
   altPathsCenter:          mock.altPathsCenter,

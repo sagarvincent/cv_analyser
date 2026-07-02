@@ -16,9 +16,12 @@ The full pre-build survey (utilities the dashboard offers, requirements per serv
 | Auth — `POST /api/auth/verify` (bcrypt, asyncpg) | Built |
 | User profile CRUD | Built |
 | CV parser (PDF / DOCX / TXT → sections + ATS red-flags) | Built |
+| JD parser (BES02 → structured ParsedJD) | Built |
+| CV↔JD scorer (BES03 — v1_tfidf / v2_ml engines: JD Fit, ATS, Peer, Comp, Paths, Align) | Built |
+| Skill Matrix lens (BES04 — semantic bucket → JD-category scoring) | Built |
 | Database schema (users, profiles, cv_uploads, …) | Built |
 | Production HTTPS (nginx-proxy + Let's Encrypt) | Built |
-| Lens analyzers (JD Fit, ATS, SkillMatrix, Peer, Comp, Paths, Trends, Align) | Stubbed / mock data |
+| Remaining lens analyzers (Trends) | Stubbed / disabled |
 | Embedding service + vector cache | Not started |
 | Orchestrator + SSE trace | Not started |
 | Export (PDF brief, share link) | Not started |
@@ -221,36 +224,42 @@ API/
   user_profile/
     interface.py        profile CRUD endpoints
     service.py          asyncpg queries + CV upload, delegates parse to analyser
+  analyze/
+    interface.py        POST /analyze  (cv file + optional jd text)
+    service.py          run_analysis — parse_cv, then scorer + skill-matrix concurrently, merged
   clients/
-    analyser_client.py  async HTTP wrapper → POST http://analyser:8002/cv/parse
-  main.py               FastAPI app, mounts auth + user_profile routers
+    analyser_client.py     async wrapper → POST analyser:8002/cv/parse
+    scorer_client.py       async wrapper → POST analyser:8002/cv/score      (BES03)
+    skill_matrix_client.py async wrapper → POST analyser:8002/skill-matrix/score (BES04)
+  main.py               FastAPI app, mounts auth + user_profile + analyze routers
   requirements.txt
   Dockerfile / Dockerfile.dev
 
-backend/
-  cv_parser/            CV parsing pipeline (4-layer architecture)
-    leaves/
-      extraction_leaves.py   signal computation (stream order, density, encoding)
-      cleaning_leaves.py     whitespace normalization helpers
-      segmentation_leaves.py section detection, heading recognition
-    extractors.py        dispatch_by_extension → PDF / DOCX / TXT extraction
-    cleaner.py           text cleaning → CleanedText
-    segmenter.py         section splitting (Experience, Education, Skills, …)
-    redflags.py          10 ATS red-flag signals
-    parser.py            parse_cv(file_bytes, filename) → ParsedCV  (L2 entry)
-    interface.py         POST /cv/parse  (FastAPI router, L1)
-    models.py            ParsedCV, Sections, AtsRedFlags, …
-  upload_validation/
-    file_validator.py    file type + 16 MB size guard
-  tests/
-    test_cv_parser_extractors.py
-    test_cv_parser_leaves.py
-    test_cv_parser_parse_cv.py
-    test_file_validator.py
-  main.py               FastAPI app, mounts cv_parser router
-  pytest.ini
-  requirements.txt
-  Dockerfile / Dockerfile.dev
+backend/                Analyser service — one FastAPI app mounting every BES0X router
+  BES00_upload_validation/   file type + 16 MB size guard
+  BES01_cv_parser/           CV → ParsedCV (4-layer: leaves → extractors/cleaner/segmenter/redflags
+                             → parser (L2) → interface (L1))   POST /cv/parse
+  BES02_jd_parser/           JD → ParsedJD (same 4-layer shape)            POST /jd/parse
+  BES03_JDResumeScorer/
+    cv_jd_scorer/            CV↔JD scorer; engine chosen via SCORER_ENGINE
+      common/                embedder (all-MiniLM-L6-v2), cv_features, text
+      engines/v1_tfidf/      TF-IDF engine: jd_fit, ats, heuristics, overview (+ data/)
+      engines/v2_ml/         semantic engine: jd_fit (sentence-transformers); reuses v1 for the rest
+      models.py              ScoreResult (JD Fit, ATS, Peer, Comp, Paths, Align)
+      interface.py           POST /cv/score
+  BES04_SkillMatrix/         Skill Matrix lens — self-contained, semantic   POST /skill-matrix/score
+    data/taxonomy.py         CATEGORIES + BUCKETS (design-centric copies)
+    embedder.py              own all-MiniLM wrapper (no BES03 import)
+    leaves/                  text_leaves, score_leaves, vector_leaves (pure)
+    classifier.py            step 1 — resume → job-profile bucket
+    jd_categories.py         step 2 — JD → demanded categories (hybrid: taxonomy + emergent)
+    scorer.py                step 3 — score resume evidence per category
+    builder.py               build_skill_matrix(parsed_cv, jd_text) → SkillMatrix  (L2)
+    interface.py             POST /skill-matrix/score  (L1)
+    models.py                SkillMatrix, SkillMatrixSummary, SkillMatrixDeltaCard
+  tests/                     pytest suites (cv_parser, jd_parser, file_validator, skill_matrix, …)
+  main.py                    FastAPI app — mounts BES01 / BES03 / BES02 / BES04 routers
+  pytest.ini / requirements.txt / Dockerfile / Dockerfile.dev
 
 frontend/               React 18 + Vite app (hi-fi prototype)
   src/
@@ -393,6 +402,46 @@ ParsedCV { raw_text, sections, extraction_method, ats_redflags }
 - Two-column PDF reflow
 - Database persistence to `parsed_cvs` table
 - Extended heading / keyword lexicon
+
+---
+
+## Skill Matrix service (BES04_SkillMatrix)
+
+The Skill Matrix lens is its own analyser module (sibling of the CV/JD parsers and the
+scorer). It is **self-contained** — its own embedder wrapper and its own taxonomy copy, with
+no import from BES03 — and follows the same 4-layer shape (leaves → L3 → L2 builder → L1
+interface). It is semantic: it uses the same `all-MiniLM-L6-v2` sentence-transformer the
+scorer's `v2_ml` engine uses.
+
+It answers a CV + JD in three steps:
+
+```
+parsed_cv + jd_text
+    │
+    ▼  1. classifier.classify_bucket        embed the CV, pick the closest job-profile
+    │     → which BUCKET the resume is         bucket (cosine over 12 design-centric profiles);
+    │                                          derive that bucket's per-category "norm"
+    ▼  2. jd_categories.build_rows           split the JD into phrases, map each to the nearest
+    │     → the CATEGORIES the JD asks for      skill category. Hybrid: taxonomy categories the JD
+    │                                          demands + emergent rows for strong JD skills that
+    │                                          map to no category. (Empty JD → bucket's top cats.)
+    ▼  3. scorer.score_rows                  per category, score the resume's evidence (YOU) and
+          → SCORE evidence vs demand            assemble the YOU / JD ASK / BUCKET NORM / PEER P50
+                                               columns; deltas (YOU − JD ASK) drive the cards
+
+SkillMatrix { skillMatrixSummary, skillMatrixCategories (rows), skillMatrixCohorts (cols),
+              skillMatrixData (rows × 4, 0–1), skillMatrixDeltaCards }
+```
+
+**Endpoint:** `POST /skill-matrix/score`  (JSON `{ parsed_cv, jd_text }`) → `SkillMatrix` JSON
+
+**Wiring:** the API gateway's `POST /analyze` calls the scorer (BES03) and this service (BES04)
+concurrently and merges both into the response the frontend consumes. The `skillMatrix*` keys
+feed the **Skill Matrix** dashboard lens (`frontend/src/components/modules/SkillGapModule.jsx`).
+
+**Pending:**
+- Multi-domain buckets/categories (engineering, data, product) — taxonomy is currently design-centric
+- Calibration of the row-selection thresholds against labelled CV/JD pairs
 
 ---
 

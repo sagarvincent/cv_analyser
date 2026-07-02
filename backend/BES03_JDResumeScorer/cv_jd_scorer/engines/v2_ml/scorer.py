@@ -2,7 +2,6 @@ from cv_jd_scorer.common.cv_features import detect_seniority
 from cv_jd_scorer.engines.v1_tfidf import ats as ats_scorer
 from cv_jd_scorer.engines.v1_tfidf import heuristics
 from cv_jd_scorer.engines.v1_tfidf import overview as overview_module
-from cv_jd_scorer.engines.v1_tfidf import skill_gap as skill_gap_scorer
 from cv_jd_scorer.engines.v2_ml import jd_fit as jd_fit_scorer
 from cv_jd_scorer.models import ReasoningStep, ScoreResult
 
@@ -45,7 +44,7 @@ def _build_trace(
         ReasoningStep(stage="INGEST",    text=f"Extracted JD signal · '{jd_preview}'"),
         ReasoningStep(stage="FIT",       text=f"Semantic embedding alignment · {n_matches} keyword matches · {n_gaps} gaps · score={jd_score}"),
         ReasoningStep(stage="ATS",       text=f"ATS structural scan · score={ats_score}/100"),
-        ReasoningStep(stage="SKILLS",    text=f"Skill matrix · {n_skills} skills × 5 tracks scored"),
+        ReasoningStep(stage="SKILLS",    text=f"Skill signal · {n_skills} skills catalogued from CV"),
         ReasoningStep(stage="MARKET",    text=f"Heuristic benchmarks · peer={peer_pct}p · seniority={seniority}"),
         ReasoningStep(stage="PATHS",     text="Adjacent role mapping complete via TF-IDF cosine"),
         ReasoningStep(stage="SYNTHESIS", text="Report assembled · all modules complete"),
@@ -55,7 +54,7 @@ def _build_trace(
 
 # -------------------- compute ----------- START ----------
 # -- Calls : jd_fit_scorer.score (v2 — semantic embeddings),
-#            ats_scorer.score, skill_gap_scorer.score,
+#            ats_scorer.score,
 #            heuristics.compute_peer, heuristics.compute_comp,
 #            heuristics.compute_alt_paths, heuristics.compute_alignment,
 #            overview_module.compute, detect_seniority, _build_trace
@@ -73,7 +72,6 @@ def compute(parsed_cv: dict, jd_text: str) -> ScoreResult:
     # Layer 2 modules — jd_fit is v2 (semantic); the rest are reused from v1.
     jd_summary, jd_matches, jd_gaps = jd_fit_scorer.score(parsed_cv, jd_text, sections)
     ats_summary, ats_checks         = ats_scorer.score(ats_redflags)
-    skill_gap_result                = skill_gap_scorer.score(sections, jd_text)
     peer_result                     = heuristics.compute_peer(sections)
     comp_result                     = heuristics.compute_comp(jd_text, sections)
     alt_paths_result                = heuristics.compute_alt_paths(raw_text, jd_text)
@@ -118,7 +116,6 @@ def compute(parsed_cv: dict, jd_text: str) -> ScoreResult:
         jdFitGaps=jd_gaps,
         atsSummary=ats_summary,
         atsChecks=ats_checks,
-        **skill_gap_result,
         **peer_result,
         **comp_result,
         **alt_paths_result,

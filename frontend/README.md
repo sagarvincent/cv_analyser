@@ -231,12 +231,12 @@ The response object is consumed directly by `AnalysisContext` and distributed to
                   "score": 0, "dwellTime": "…", "normDwellTime": "…" },
   "atsChecks":  [{ "label": "…", "passed": true, "note": "…" }],
 
-  // Skill Gap module
-  "skillGapSummary":    { "eyebrow": "…", "overIndexTopic": "…", "underIndexTopic": "…", "sub": "…" },
-  "skillGapSkills":     ["…"],
-  "skillGapTracks":     ["…"],
-  "skillGapData":       [[0]],
-  "skillGapDeltaCards": [{ "topic": "…", "you": 0, "market": 0, "delta": 0 }],
+  // Skill Matrix module (BES04 — bucket → JD categories → semantic score)
+  "skillMatrixSummary":    { "eyebrow": "…", "bucket": "…", "overIndexTopic": "…", "underIndexTopic": "…", "sub": "…" },
+  "skillMatrixCategories": ["…"],
+  "skillMatrixCohorts":    ["YOU", "JD ASK", "BUCKET NORM", "PEER P50"],
+  "skillMatrixData":       [[0]],
+  "skillMatrixDeltaCards": [{ "label": "…", "topic": "…", "delta": "…", "color": "…", "note": "…" }],
 
   // Alternative Paths module
   "altPathsSummary": { "eyebrow": "…", "titleWarn": "…", "titleRest": "…", "sub": "…" },

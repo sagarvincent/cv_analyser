@@ -77,13 +77,6 @@ class ScoreResult(BaseModel):
     atsSummary: AtsSummary
     atsChecks: list[AtsCheck]
 
-    # Skill Gap
-    skillGapSummary: dict
-    skillGapSkills: list[str]
-    skillGapTracks: list[str]
-    skillGapData: list[list[float]]
-    skillGapDeltaCards: list[dict]
-
     # Peer Benchmark
     peerSummary: dict
     peerBuckets: list[int]

@@ -7,7 +7,7 @@ _REGISTRY: dict[str, str] = {
     "v1_tfidf": "cv_jd_scorer.engines.v1_tfidf.engine",
     "v2_ml":    "cv_jd_scorer.engines.v2_ml.engine",
 }
-_DEFAULT = "v1_tfidf"
+_DEFAULT = "v2_ml"
 
 
 def _load_engine(engine_id: str) -> ScorerEngine:
