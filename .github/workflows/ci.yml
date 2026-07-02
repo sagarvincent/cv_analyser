@@ -1,0 +1,84 @@
+name: CI
+
+# Test on every push to development, and on any PR targeting development or
+# production. Deploys are handled separately by deploy.yml (push to production).
+on:
+  push:
+    branches: [development]
+  pull_request:
+    branches: [development, production]
+
+# A newer push to the same branch/PR cancels an in-flight run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-tests:
+    name: Analyser (pytest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      # sentence-transformers pulls a ~90MB model on first use; cache it so
+      # reruns don't re-download.
+      - name: Cache HuggingFace models
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-${{ hashFiles('backend/requirements.txt') }}
+
+      - name: Install dependencies
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Download NLTK data
+        run: python -m nltk.downloader stopwords punkt
+
+      - name: Run tests
+        working-directory: backend
+        run: pytest -q
+
+  frontend-tests:
+    name: Frontend (vitest + build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      # --passWithNoTests keeps CI green until the first vitest spec lands.
+      - name: Run tests
+        working-directory: frontend
+        run: npm run test -- --passWithNoTests
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+
+  compose-validate:
+    name: Validate prod compose
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint docker-compose.prod.yaml
+        run: docker compose -f docker-compose.prod.yaml config --quiet
